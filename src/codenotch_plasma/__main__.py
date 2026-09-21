@@ -5,8 +5,8 @@ from pathlib import Path
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QAction, QApplication, QMenu, QSystemTrayIcon
 
-from .icons import load_app_icon
-from .layout import configure_layout, set_appearance
+from .icons import install_theme_listener, is_dark_theme, load_app_icon, sync_system_icons
+from .layout import apply_system_theme, configure_layout, set_appearance
 from .overlay import NotchOverlay
 from .provider_order import joining_connected, remember
 from .providers import discover_providers, tool_catalog
@@ -115,12 +115,19 @@ class CodenotchApp:
             active_providers(self._config),
             refresh_interval=int(self._config.get("refreshInterval", 60)),
         )
+        self._tray = None
         self._overlay = NotchOverlay(self._store, self._config)
         self._overlay.show()
         self._store.start()
         if not self._config.get("alwaysOpen"):
             self._overlay._expand()
             QTimer.singleShot(4000, self._overlay._maybe_fold)
+        self._icon_sync_timer = QTimer()
+        self._icon_sync_timer.setSingleShot(True)
+        self._icon_sync_timer.setInterval(300)
+        self._icon_sync_timer.timeout.connect(self._apply_system_icons)
+        install_theme_listener(lambda *_args: self._icon_sync_timer.start())
+        self._apply_system_icons()
         self._tray = self._build_tray()
         self._tray.show()
         self._app.aboutToQuit.connect(self._shutdown)
@@ -158,6 +165,18 @@ class CodenotchApp:
         save_config(self._config)
         self._store.reload_providers(providers)
         self._overlay.reload_providers()
+
+    def _apply_system_icons(self):
+        sync_system_icons()
+        apply_system_theme(
+            dark=is_dark_theme(),
+            opacity=float(self._config.get("opacity", 1)),
+        )
+        self._overlay.update()
+        icon = load_app_icon(22, for_tray=True)
+        if self._tray is not None:
+            self._tray.setIcon(icon)
+        self._app.setWindowIcon(load_app_icon(32))
 
     def _build_tray(self):
         tray = QSystemTrayIcon(self._app)
@@ -198,7 +217,6 @@ def main(argv=None):
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app = QApplication(argv)
     app.setApplicationName("Codenotch")
-    app.setWindowIcon(load_app_icon(32))
     app.setQuitOnLastWindowClosed(False)
     CodenotchApp(app)
     return app.exec_()

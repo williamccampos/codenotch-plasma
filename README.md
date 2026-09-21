@@ -22,8 +22,8 @@ O símbolo do Codenotch é um **notch minimalista** — uma pill com recorte lat
 
 | Contexto | Comportamento |
 |----------|---------------|
-| **Bandeja do sistema** | Renderizado em tempo real na cor do tema (claro ou escuro) |
-| **Menu de aplicativos** | Ícone fixo em cinza escuro, instalado no tema `hicolor` |
+| **Bandeja do sistema** | Sincronizado com o tema do Plasma (claro → ícone escuro, escuro → ícone claro) |
+| **Menu de aplicativos** | Mesma lógica — atualizado automaticamente ao iniciar e ao trocar o tema |
 
 Arquivos do ícone: [`icons/codenotch-plasma.svg`](icons/codenotch-plasma.svg) · propostas exploratórias em [`icons/preview/`](icons/preview/)
 
@@ -32,7 +32,7 @@ Arquivos do ícone: [`icons/codenotch-plasma.svg`](icons/codenotch-plasma.svg) �
 O jeito mais simples é pelo **pacote `.deb`**, publicado automaticamente em cada release do GitHub:
 
 1. Abra a [página de Releases](https://github.com/williamccampos/codenotch-plasma/releases)
-2. Baixe `codenotch-plasma_<versão>_amd64.deb` (ex.: `0.1.5`)
+2. Baixe `codenotch-plasma_<versão>_amd64.deb` (ex.: `0.1.6`)
 3. Instale:
 
 ```bash
@@ -40,13 +40,6 @@ sudo apt install ./codenotch-plasma_<versão>_amd64.deb
 ```
 
 O pacote instala o binário em `/usr/bin/codenotch-plasma`, registra **autostart** no login do KDE, instala o ícone no menu de aplicativos e resolve as dependências Python do sistema (`python3-pyqt5`, etc.).
-
-Se o ícone do menu não atualizar após um upgrade, limpe o cache do KDE e reinicie o launcher:
-
-```bash
-rm -f ~/.cache/icon-cache.kcache ~/.cache/ksycoca5_* ~/.cache/ksycoca6_*
-kbuildsycoca5 --noincremental
-```
 
 ### Limitações conhecidas
 

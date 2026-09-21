@@ -73,15 +73,38 @@ def configure_layout(scale=1.0, show_labels=True, text_scale=1.0):
 
 configure_layout()
 
+PURE_WHITE = "#FFFFFF"
+PURE_BLACK = "#000000"
+
 Palette = {
-    "ringTrack": "#303030",
-    "barTrack": "#2D2D2D",
+    "ringTrack": PURE_WHITE,
+    "barTrack": PURE_WHITE,
     "ample": "#00FF88",
     "watch": "#F2FF00",
     "critical": "#FF3F00",
-    "textPrimary": "#FFFFFF",
-    "textSecondary": "#808080",
+    "textPrimary": PURE_WHITE,
+    "textSecondary": PURE_WHITE,
 }
+
+
+def apply_system_theme(dark=True, opacity=None):
+    """Apply pure black/white structural colors to the notch."""
+    if dark:
+        Palette.update({
+            "ringTrack": PURE_WHITE,
+            "barTrack": PURE_WHITE,
+            "textPrimary": PURE_WHITE,
+            "textSecondary": PURE_WHITE,
+        })
+        set_appearance(PURE_BLACK, opacity if opacity is not None else Appearance["opacity"])
+    else:
+        Palette.update({
+            "ringTrack": PURE_BLACK,
+            "barTrack": PURE_BLACK,
+            "textPrimary": PURE_BLACK,
+            "textSecondary": PURE_BLACK,
+        })
+        set_appearance(PURE_WHITE, opacity if opacity is not None else Appearance["opacity"])
 
 
 def cell_along(vertical):

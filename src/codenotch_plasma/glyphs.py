@@ -6,6 +6,8 @@ from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QFont, QPainterPath, QPixmap, QTransform
 
+from .layout import Palette
+
 _ASSETS = Path(__file__).with_name("assets")
 _DATA = json.loads((Path(__file__).with_name("glyphs.json")).read_text())
 _EXTRA_OUTLINES = {
@@ -56,7 +58,8 @@ def glyph_path(name, cx, cy, size):
 
 def draw_glyph(painter, name, cx, cy, size, alpha=1.0, badge=None):
     painter.save()
-    color = QColor(255, 255, 255, int(255 * max(0.0, min(1.0, alpha))))
+    base = QColor(Palette["textPrimary"])
+    color = QColor(base.red(), base.green(), base.blue(), int(255 * max(0.0, min(1.0, alpha))))
     pix = _load_asset(name)
     if pix is not None:
         target = int(size * GLYPH_SCALE.get(name, 1))

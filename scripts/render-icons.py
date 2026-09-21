@@ -14,7 +14,7 @@ ASSET_PNG = ROOT / "src" / "codenotch_plasma" / "assets" / "codenotch-plasma.png
 ASSET_SVG = ROOT / "src" / "codenotch_plasma" / "assets" / "codenotch-plasma.svg"
 
 
-MENU_FILL = "#1E1E1E"
+MENU_FILL = "#000000"
 
 
 def svg_to_png(size: int) -> bytes:

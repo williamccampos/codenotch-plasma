@@ -1,5 +1,7 @@
 """App and tray icons for Codenotch."""
 
+import shutil
+import subprocess
 from pathlib import Path
 
 from PyQt5.QtCore import Qt
@@ -7,6 +9,11 @@ from PyQt5.QtGui import QIcon, QImage, QPixmap
 
 _ICON_NAME = "codenotch-plasma"
 _SVG_FILL = "#FFFFFF"
+_ICON_FILL_DARK = "#FFFFFF"
+_ICON_FILL_LIGHT = "#000000"
+_ICON_SIZES = (16, 22, 24, 32, 48, 64, 128, 256)
+_USER_ICON_ROOT = Path.home() / ".local/share/icons/hicolor"
+_last_sync_fill = None
 
 
 def _search_paths():
@@ -19,7 +26,8 @@ def _search_paths():
     for root in roots:
         yield root / f"{_ICON_NAME}.svg"
         yield root / f"{_ICON_NAME}.png"
-    for size in (256, 128, 64, 48, 32, 24, 22, 16):
+    for size in _ICON_SIZES:
+        yield _USER_ICON_ROOT / f"{size}x{size}" / "apps" / f"{_ICON_NAME}.png"
         yield Path(f"/usr/share/icons/hicolor/{size}x{size}/apps/{_ICON_NAME}.png")
 
 
@@ -30,13 +38,17 @@ def _master_svg():
     return None
 
 
-def _fill_color():
+def is_dark_theme():
     from PyQt5.QtWidgets import QApplication
 
     app = QApplication.instance()
     if app is None:
-        return "#E8E8E8"
-    return app.palette().windowText().color().name()
+        return True
+    return app.palette().window().color().lightness() < 128
+
+
+def icon_fill_for_theme():
+    return _ICON_FILL_DARK if is_dark_theme() else _ICON_FILL_LIGHT
 
 
 def _svg_png(svg_path: Path, size: int, fill: str) -> bytes | None:
@@ -60,7 +72,7 @@ def _svg_png(svg_path: Path, size: int, fill: str) -> bytes | None:
 def render_app_icon(size=32, fill=None):
     svg = _master_svg()
     if svg:
-        data = _svg_png(svg, size, fill or _fill_color())
+        data = _svg_png(svg, size, fill or icon_fill_for_theme())
         if data:
             image = QImage.fromData(data)
             if not image.isNull():
@@ -77,6 +89,78 @@ def render_app_icon(size=32, fill=None):
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
     return pixmap
+
+
+def refresh_system_icon_cache():
+    cache = Path.home() / ".cache/icon-cache.kcache"
+    if cache.exists():
+        cache.unlink()
+    for pattern in ("ksycoca5_*", "ksycoca6_*"):
+        for path in Path.home().joinpath(".cache").glob(pattern):
+            path.unlink(missing_ok=True)
+    if _USER_ICON_ROOT.exists():
+        subprocess.run(
+            ["gtk-update-icon-cache", "-f", "-q", str(_USER_ICON_ROOT)],
+            check=False,
+            capture_output=True,
+        )
+    for cmd in ("kbuildsycoca6", "kbuildsycoca5"):
+        path = shutil.which(cmd)
+        if path:
+            subprocess.run([path, "--noincremental"], check=False, capture_output=True)
+
+
+def sync_system_icons(force=False):
+    """Write theme-aware icons to the user hicolor theme."""
+    global _last_sync_fill
+
+    fill = icon_fill_for_theme()
+    if not force and fill == _last_sync_fill:
+        return fill
+
+    svg = _master_svg()
+    if svg is None:
+        return fill
+
+    for size in _ICON_SIZES:
+        out = _USER_ICON_ROOT / f"{size}x{size}" / "apps" / f"{_ICON_NAME}.png"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        data = _svg_png(svg, size, fill)
+        if data:
+            out.write_bytes(data)
+
+    scalable = _USER_ICON_ROOT / "scalable" / "apps" / f"{_ICON_NAME}.svg"
+    scalable.parent.mkdir(parents=True, exist_ok=True)
+    scalable.write_text(
+        svg.read_text(encoding="utf-8").replace(f'fill="{_SVG_FILL}"', f'fill="{fill}"'),
+        encoding="utf-8",
+    )
+
+    _last_sync_fill = fill
+    refresh_system_icon_cache()
+    return fill
+
+
+def install_theme_listener(callback):
+    from PyQt5.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is not None:
+        app.paletteChanged.connect(callback)
+
+    try:
+        from PyQt5.QtDBus import QDBusConnection
+
+        bus = QDBusConnection.sessionBus()
+        bus.connect(
+            "",
+            "/KGlobalSettings",
+            "org.kde.KGlobalSettings",
+            "notifyChange",
+            callback,
+        )
+    except Exception:
+        pass
 
 
 def load_app_icon(size=32, for_tray=False):

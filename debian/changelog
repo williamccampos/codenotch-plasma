@@ -1,3 +1,10 @@
+codenotch-plasma (0.1.6-1) unstable; urgency=medium
+
+  * Sync tray and menu icons with the Plasma theme using pure black/white.
+  * Apply matching pure black/white structural colors to the notch.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 01:40:00 -0300
+
 codenotch-plasma (0.1.5-1) unstable; urgency=medium
 
   * Point the menu launcher at the installed PNG icon directly.
