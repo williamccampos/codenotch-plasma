@@ -196,10 +196,10 @@ class CodenotchApp:
         clear_adapted_cache()
         self._overlay.set_theme_mode(mode)
         self._overlay.update()
-        icon = load_app_icon(22, for_tray=True)
         if self._tray is not None:
-            self._tray.setIcon(icon)
+            self._tray.setIcon(load_app_icon(22, for_tray=True))
             self._tray.setContextMenu(self._build_menu())
+            self._tray.show()
         self._app.setWindowIcon(load_app_icon(32))
 
     def _on_theme_mode_changed(self, mode):

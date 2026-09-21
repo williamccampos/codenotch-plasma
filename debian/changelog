@@ -1,3 +1,9 @@
+codenotch-plasma (0.2.6-1) unstable; urgency=medium
+
+  * Tray icon follows notch theme again (white on dark, black on light).
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 02:28:00 -0300
+
 codenotch-plasma (0.2.5-1) unstable; urgency=medium
 
   * Fix inverted tray icon when notch theme differs from the Plasma panel.

@@ -58,18 +58,9 @@ def is_dark_theme():
 
 
 def icon_fill_for_theme():
-    """Launcher/menu icon — follows notch theme mode."""
+    """Icon color follows notch theme (white on dark notch, black on light)."""
     dark = resolve_dark(_active_mode, is_dark_theme())
     return _ICON_FILL_DARK if dark else _ICON_FILL_LIGHT
-
-
-def icon_fill_for_tray():
-    """Tray icon — follows the Plasma panel for contrast.
-
-    The notch can be forced light/dark independently; the tray must stay
-    readable on the panel (dark panel -> white icon, light panel -> black).
-    """
-    return _ICON_FILL_DARK if is_dark_theme() else _ICON_FILL_LIGHT
 
 
 def _system_icon_path(size: int) -> Path | None:
@@ -193,5 +184,13 @@ def install_theme_listener(callback):
 
 
 def load_app_icon(size=32, for_tray=False):
-    fill = icon_fill_for_tray() if for_tray else icon_fill_for_theme()
-    return QIcon(render_app_icon(size, fill=fill))
+    fill = icon_fill_for_theme()
+    if not for_tray:
+        return QIcon(render_app_icon(size, fill=fill))
+
+    icon = QIcon()
+    for px in (16, 22, 24, 32):
+        pixmap = render_app_icon(px, fill=fill)
+        if pixmap is not None and not pixmap.isNull():
+            icon.addPixmap(pixmap)
+    return icon
