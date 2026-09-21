@@ -58,9 +58,8 @@ def is_dark_theme():
 
 
 def icon_fill_for_theme():
-    """Icon color follows notch theme (white on dark notch, black on light)."""
-    dark = resolve_dark(_active_mode, is_dark_theme())
-    return _ICON_FILL_DARK if dark else _ICON_FILL_LIGHT
+    """Tray and launcher icons stay white; only the notch body changes theme."""
+    return _ICON_FILL_DARK
 
 
 def _system_icon_path(size: int) -> Path | None:

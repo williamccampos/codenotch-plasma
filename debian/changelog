@@ -1,3 +1,10 @@
+codenotch-plasma (0.2.7-1) unstable; urgency=medium
+
+  * Keep tray and launcher icons fixed white; only the notch changes theme.
+  * Redraw sun/moon toggle icons larger and bolder.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 02:32:00 -0300
+
 codenotch-plasma (0.2.6-1) unstable; urgency=medium
 
   * Tray icon follows notch theme again (white on dark, black on light).

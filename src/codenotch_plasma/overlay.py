@@ -321,15 +321,15 @@ class NotchOverlay(QWidget):
 
     def _paint_sun_icon(self, painter, cx, cy, size):
         icon = QColor(Palette["textPrimary"])
-        radius = size * 0.18
-        stroke = max(1.2, size * 0.055)
+        radius = size * 0.24
+        stroke = max(2.0, size * 0.085)
         painter.setPen(Qt.NoPen)
         painter.setBrush(icon)
         painter.drawEllipse(QPointF(cx, cy), radius, radius)
         painter.setBrush(Qt.NoBrush)
         painter.setPen(QPen(icon, stroke, Qt.SolidLine, Qt.RoundCap))
-        ray_inner = radius * 1.35
-        ray_outer = radius * 1.85
+        ray_inner = radius * 1.28
+        ray_outer = radius * 2.05
         for angle in range(0, 360, 45):
             rad = math.radians(angle)
             painter.drawLine(
@@ -339,14 +339,15 @@ class NotchOverlay(QWidget):
 
     def _paint_moon_icon(self, painter, cx, cy, size):
         icon = QColor(Palette["textPrimary"])
-        radius = size * 0.20
+        radius = size * 0.26
+        crescent = QPainterPath()
+        crescent.addEllipse(QPointF(cx - radius * 0.08, cy), radius, radius)
+        cut = QPainterPath()
+        cut.addEllipse(QPointF(cx + radius * 0.52, cy - radius * 0.04), radius * 0.88, radius * 0.88)
+        crescent = crescent.subtracted(cut)
         painter.setPen(Qt.NoPen)
         painter.setBrush(icon)
-        painter.drawEllipse(QPointF(cx, cy), radius, radius)
-        cut = QColor(Appearance["color"])
-        cut.setAlphaF(Appearance["opacity"])
-        painter.setBrush(cut)
-        painter.drawEllipse(QPointF(cx + radius * 0.42, cy - radius * 0.08), radius * 0.92, radius * 0.92)
+        painter.drawPath(crescent)
 
     def _paint_theme_toggle(self, painter, t):
         cx, cy = self._theme_toggle_center()

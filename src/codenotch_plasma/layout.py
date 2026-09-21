@@ -39,7 +39,7 @@ def configure_layout(scale=1.0, show_labels=True, text_scale=1.0):
         "innerProgressStroke": px(4.5),
         "glyphSize": px(46),
         "themeButtonScale": 0.58,
-        "themeToggleScale": 0.80,
+        "themeToggleScale": 0.86,
         "ringLabelGap": px(26.9) if show_labels else 0,
         "percentFont": font_size(27),
         "activityDiameter": px(72),
