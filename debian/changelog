@@ -1,3 +1,9 @@
+codenotch-plasma (0.2.5-1) unstable; urgency=medium
+
+  * Fix inverted tray icon when notch theme differs from the Plasma panel.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 02:25:00 -0300
+
 codenotch-plasma (0.2.4-1) unstable; urgency=medium
 
   * Tray icon follows notch theme mode again.
