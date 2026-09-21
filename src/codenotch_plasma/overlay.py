@@ -75,6 +75,10 @@ class NotchOverlay(QWidget):
         self._fullscreen_timer = QTimer(self)
         self._fullscreen_timer.timeout.connect(self._sync_fullscreen_visibility)
         self._fullscreen_timer.start(500)
+        self._screen_relayout_timer = QTimer(self)
+        self._screen_relayout_timer.setSingleShot(True)
+        self._screen_relayout_timer.setInterval(150)
+        self._screen_relayout_timer.timeout.connect(self._apply_screen_change)
 
         self.setWindowTitle("Codenotch")
         self.setWindowFlags(
@@ -90,6 +94,7 @@ class NotchOverlay(QWidget):
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.NoFocus)
         store.changed.connect(lambda _id: self.update())
+        self._install_screen_watchers()
         self._relayout()
         self._update_mask()
 
@@ -146,9 +151,43 @@ class NotchOverlay(QWidget):
             h = int(math.ceil(depth + L["cardWidth"] + L["tailLength"] + L["envelopeMargin"]))
         return max(w, 80), max(h, 80)
 
+    def _primary_screen(self):
+        return QApplication.primaryScreen()
+
     def _screen_geo(self):
-        screen = QApplication.primaryScreen()
-        return screen.geometry() if screen else QApplication.desktop().screenGeometry()
+        screen = self._primary_screen()
+        if screen:
+            return screen.availableGeometry()
+        return QApplication.desktop().availableGeometry()
+
+    def _install_screen_watchers(self):
+        app = QApplication.instance()
+        if app is None:
+            return
+        app.primaryScreenChanged.connect(self._schedule_screen_relayout)
+        app.screenAdded.connect(self._on_screen_added)
+        app.screenRemoved.connect(self._schedule_screen_relayout)
+        for screen in app.screens():
+            self._watch_screen(screen)
+
+    def _watch_screen(self, screen):
+        if screen is None:
+            return
+        screen.geometryChanged.connect(self._schedule_screen_relayout)
+        screen.availableGeometryChanged.connect(self._schedule_screen_relayout)
+
+    def _on_screen_added(self, screen):
+        self._watch_screen(screen)
+        self._schedule_screen_relayout()
+
+    def _schedule_screen_relayout(self, *_args):
+        self._screen_relayout_timer.start()
+
+    def _apply_screen_change(self):
+        self._relayout()
+        self._update_mask()
+        self._sync_fullscreen_visibility()
+        self.update()
 
     def _relayout(self):
         w, h = self._envelope_size()
@@ -747,18 +786,26 @@ class NotchOverlay(QWidget):
                 best, best_d = i, d
         return best
 
+    @staticmethod
+    def _screen_has_panel(screen):
+        return screen.geometry() != screen.availableGeometry()
+
     def _sync_fullscreen_visibility(self):
         if not self._hide_fullscreen:
             if not self.isVisible():
                 self.show()
             return
-        screen = QApplication.primaryScreen()
+        screen = self._primary_screen()
         if not screen:
             return
-        fullscreen = screen.geometry() == screen.availableGeometry()
-        if fullscreen and self.isVisible():
+        if not self._screen_has_panel(screen):
+            if not self.isVisible():
+                self.show()
+            return
+        panels_hidden = screen.geometry() == screen.availableGeometry()
+        if panels_hidden and self.isVisible():
             self.hide()
-        elif not fullscreen and not self.isVisible():
+        elif not panels_hidden and not self.isVisible():
             self.show()
 
     def enterEvent(self, _event):
