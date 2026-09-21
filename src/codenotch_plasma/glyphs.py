@@ -1,14 +1,14 @@
-"""Provider marks: PNG assets for Cursor/Kiro, traced vectors from codenotch-gnome."""
+"""Provider marks as traced vectors (from codenotch-gnome glyphs.json)."""
 
 import json
 from pathlib import Path
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QFont, QPainterPath, QPixmap, QTransform
+from PyQt5.QtGui import QColor, QFont, QPainterPath, QTransform
 
-_ASSETS = Path(__file__).with_name("assets")
 _DATA = json.loads((Path(__file__).with_name("glyphs.json")).read_text())
 _EXTRA_OUTLINES = {
+    # Providers added in this port — simple geometric marks, same style as the original.
     "cursor": [
         [0.50, 0.10, 0.84, 0.28, 0.50, 0.46, 0.16, 0.28],
         [0.16, 0.28, 0.50, 0.46, 0.50, 0.86, 0.16, 0.68],
@@ -17,25 +17,6 @@ _EXTRA_OUTLINES = {
 }
 GLYPH_SCALE = {**_DATA["scale"], "cursor": 0.92, "kiro": 0.95}
 OUTLINES = {**_DATA["outlines"], **_EXTRA_OUTLINES}
-_PNG_ONLY = frozenset({"cursor", "kiro"})
-_PNG_CACHE = {}
-
-
-def _png_path(name):
-    path = _ASSETS / f"{name}.png"
-    return path if path.exists() else None
-
-
-def _load_png(name):
-    if name in _PNG_CACHE:
-        return _PNG_CACHE[name]
-    path = _png_path(name)
-    if not path:
-        _PNG_CACHE[name] = None
-        return None
-    pix = QPixmap(str(path))
-    _PNG_CACHE[name] = pix if not pix.isNull() else None
-    return _PNG_CACHE[name]
 
 
 def glyph_path(name, cx, cy, size):
@@ -63,33 +44,24 @@ def glyph_path(name, cx, cy, size):
 def draw_glyph(painter, name, cx, cy, size, alpha=1.0, badge=None):
     painter.save()
     color = QColor(255, 255, 255, int(255 * max(0.0, min(1.0, alpha))))
-    pix = _load_png(name) if name in _PNG_ONLY else None
-    if pix is not None:
-        target = int(size)
-        scaled = pix.scaled(target, target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        x = int(cx - scaled.width() / 2)
-        y = int(cy - scaled.height() / 2)
-        painter.setOpacity(alpha)
-        painter.drawPixmap(x, y, scaled)
+    path = glyph_path(name, cx, cy, size)
+    painter.setPen(Qt.NoPen)
+    painter.setBrush(color)
+    if not path.isEmpty():
+        painter.drawPath(path)
     else:
-        path = glyph_path(name, cx, cy, size)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(color)
-        if not path.isEmpty():
-            painter.drawPath(path)
-        else:
-            font = QFont("Noto Sans")
-            font.setPixelSize(max(10, int(size * 0.55)))
-            font.setWeight(QFont.Bold)
-            painter.setFont(font)
-            painter.setPen(color)
-            letter = name[:1].upper()
-            metrics = painter.fontMetrics()
-            painter.drawText(
-                int(cx - metrics.horizontalAdvance(letter) / 2),
-                int(cy + metrics.ascent() / 3),
-                letter,
-            )
+        font = QFont("Noto Sans")
+        font.setPixelSize(max(10, int(size * 0.55)))
+        font.setWeight(QFont.Bold)
+        painter.setFont(font)
+        painter.setPen(color)
+        letter = name[:1].upper()
+        metrics = painter.fontMetrics()
+        painter.drawText(
+            int(cx - metrics.horizontalAdvance(letter) / 2),
+            int(cy + metrics.ascent() / 3),
+            letter,
+        )
     if badge == "corp":
         r = max(5, int(size * 0.14))
         painter.setPen(Qt.NoPen)
