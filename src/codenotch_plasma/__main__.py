@@ -18,7 +18,7 @@ from .overlay import NotchOverlay
 from .provider_order import joining_connected, remember
 from .providers import discover_providers, tool_catalog
 from .store import UsageStore
-from .theme import mode_label, next_mode, normalize_mode, resolve_dark
+from .theme import mode_label, normalize_mode, resolve_dark
 
 
 CONFIG_PATH = Path.home() / ".config" / "codenotch-plasma" / "config.json"
@@ -207,9 +207,6 @@ class CodenotchApp:
         save_config(self._config)
         self._apply_system_icons()
 
-    def _cycle_theme_mode(self):
-        self._on_theme_mode_changed(next_mode(self._config.get("themeMode", "auto")))
-
     def _popup_menu(self, global_pos):
         self._build_menu(parent=self._overlay).exec_(global_pos)
 
@@ -254,9 +251,6 @@ class CodenotchApp:
             action.setChecked(current == mode)
             action.triggered.connect(lambda _checked=False, mode=mode: self._on_theme_mode_changed(mode))
             appearance.addAction(action)
-        theme_cycle = QAction(f"Tema atual: {mode_label(current)}", menu)
-        theme_cycle.triggered.connect(self._cycle_theme_mode)
-        menu.addAction(theme_cycle)
         quit_act = QAction("Sair do Codenotch", menu)
         quit_act.triggered.connect(self._app.quit)
         menu.addAction(quit_act)
