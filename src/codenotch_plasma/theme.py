@@ -23,6 +23,11 @@ def next_mode(mode):
     return _CYCLE[(index + 1) % len(_CYCLE)]
 
 
+def toggle_fixed_mode(resolved_dark):
+    """Switch between explicit dark and light (skips auto)."""
+    return "light" if resolved_dark else "dark"
+
+
 def mode_label(mode):
     labels = {
         "auto": "Automático",

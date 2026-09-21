@@ -1,3 +1,10 @@
+codenotch-plasma (0.2.3-1) unstable; urgency=medium
+
+  * Add sun/moon theme toggle in the IA column (dark/light only).
+  * Keep tray menu button in the notch footer.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 02:15:00 -0300
+
 codenotch-plasma (0.2.2-1) unstable; urgency=medium
 
   * Tray icon now follows the Plasma panel theme, not the notch theme mode.

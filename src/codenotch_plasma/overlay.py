@@ -16,9 +16,9 @@ from .copytext import count_text, elapsed_text, percent_text, reset_text
 from .glyphs import draw_glyph
 from .layout import (
     Appearance, L, Palette, band, band_color, body_depth,
-    ring_center, shape_length,
+    is_dark_notch, ring_center, shape_length,
 )
-from .theme import next_mode, normalize_mode
+from .theme import normalize_mode, toggle_fixed_mode
 from .shape import card_path, edge_notch_path, lerp
 from .store import dual_ring_windows, glyph_dimmed, headline_of, headline_text
 
@@ -44,7 +44,6 @@ class NotchOverlay(QWidget):
         self._on_theme_change = on_theme_change
         self._open_menu = open_menu
         self._theme_mode = normalize_mode(config.get("themeMode", "auto"))
-        self._theme_spin = 0.0
         self._edge = config.get("edge", "right")
         self._position = max(0.0, min(1.0, float(config.get("position", 0.5))))
         self._always_open = bool(config.get("alwaysOpen", False))
@@ -66,8 +65,6 @@ class NotchOverlay(QWidget):
         self._leave_timer.timeout.connect(self._maybe_fold)
         self._anim = QVariantAnimation(self)
         self._anim.valueChanged.connect(self._on_progress)
-        self._theme_spin_anim = QVariantAnimation(self)
-        self._theme_spin_anim.valueChanged.connect(self._on_theme_spin)
         self._activity_timer = QTimer(self)
         self._activity_timer.timeout.connect(self._tick_activity)
         self._activity_timer.start(16)
@@ -118,7 +115,7 @@ class NotchOverlay(QWidget):
     progress = pyqtProperty(float, get_progress, set_progress)
 
     def _cell_count(self):
-        return len(self._store.providers)
+        return len(self._store.providers) + 1
 
     def _vertical(self):
         return self._edge in ("left", "right")
@@ -288,63 +285,125 @@ class NotchOverlay(QWidget):
         if self._hover_index >= 0 and t > 0.7:
             self._paint_card(painter, self._hover_index)
         if t > 0.35:
-            self._paint_control_buttons(painter, t)
+            self._paint_theme_toggle(painter, t)
+            self._paint_menu_button_footer(painter, t)
 
-    def _control_button_size(self):
-        return L["glyphSize"] * L["themeButtonScale"]
+    def _theme_toggle_index(self):
+        return len(self._store.providers)
 
-    def _control_button_centers(self):
+    def _theme_toggle_center(self):
+        return self._ring_center(self._theme_toggle_index())
+
+    def _theme_toggle_scale(self):
+        return L["themeToggleScale"]
+
+    def _theme_ring_radius(self):
+        diameter = L["ringDiameter"] * self._theme_toggle_scale()
+        return diameter / 2 - L["trackStroke"] * self._theme_toggle_scale() / 2
+
+    def _paint_theme_divider(self, painter, t):
+        providers = self._store.providers
+        if not providers:
+            return
+        cx1, cy1 = self._ring_center(len(providers) - 1)
+        cx2, cy2 = self._theme_toggle_center()
+        mx, my = (cx1 + cx2) / 2, (cy1 + cy2) / 2
+        span = L["ringDiameter"] * 0.52
+        pen = QPen(QColor(Palette["ringTrack"]))
+        pen.setWidthF(max(1.0, L["hairline"]))
+        painter.setPen(pen)
+        painter.setOpacity(t)
+        if self._vertical():
+            painter.drawLine(QPointF(mx - span / 2, my), QPointF(mx + span / 2, my))
+        else:
+            painter.drawLine(QPointF(mx, my - span / 2), QPointF(mx, my + span / 2))
+        painter.setOpacity(1.0)
+
+    def _paint_sun_icon(self, painter, cx, cy, size):
+        icon = QColor(Palette["textPrimary"])
+        radius = size * 0.18
+        stroke = max(1.2, size * 0.055)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(icon)
+        painter.drawEllipse(QPointF(cx, cy), radius, radius)
+        painter.setBrush(Qt.NoBrush)
+        painter.setPen(QPen(icon, stroke, Qt.SolidLine, Qt.RoundCap))
+        ray_inner = radius * 1.35
+        ray_outer = radius * 1.85
+        for angle in range(0, 360, 45):
+            rad = math.radians(angle)
+            painter.drawLine(
+                QPointF(cx + math.cos(rad) * ray_inner, cy + math.sin(rad) * ray_inner),
+                QPointF(cx + math.cos(rad) * ray_outer, cy + math.sin(rad) * ray_outer),
+            )
+
+    def _paint_moon_icon(self, painter, cx, cy, size):
+        icon = QColor(Palette["textPrimary"])
+        radius = size * 0.20
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(icon)
+        painter.drawEllipse(QPointF(cx, cy), radius, radius)
+        cut = QColor(Appearance["color"])
+        cut.setAlphaF(Appearance["opacity"])
+        painter.setBrush(cut)
+        painter.drawEllipse(QPointF(cx + radius * 0.42, cy - radius * 0.08), radius * 0.92, radius * 0.92)
+
+    def _paint_theme_toggle(self, painter, t):
+        cx, cy = self._theme_toggle_center()
+        painter.save()
+        painter.setOpacity(t)
+        self._paint_theme_divider(painter, t)
+        radius = self._theme_ring_radius()
+        track = QPen(QColor(Palette["ringTrack"]))
+        track.setWidthF(L["trackStroke"] * self._theme_toggle_scale())
+        track.setCapStyle(Qt.FlatCap)
+        painter.setPen(track)
+        painter.setBrush(Qt.NoBrush)
+        painter.drawEllipse(QPointF(cx, cy), radius, radius)
+        icon_size = L["glyphSize"] * self._theme_toggle_scale()
+        if is_dark_notch():
+            self._paint_sun_icon(painter, cx, cy, icon_size)
+        else:
+            self._paint_moon_icon(painter, cx, cy, icon_size)
+        painter.restore()
+
+    def _hit_theme_toggle(self, pos):
+        if self._progress < 0.4:
+            return False
+        cx, cy = self._theme_toggle_center()
+        hit_radius = L["ringDiameter"] * self._theme_toggle_scale() / 2
+        return math.hypot(pos.x() - cx, pos.y() - cy) <= hit_radius
+
+    def _toggle_theme(self):
+        new_mode = toggle_fixed_mode(is_dark_notch())
+        self._theme_mode = new_mode
+        self._config["themeMode"] = new_mode
+        if self._on_theme_change:
+            self._on_theme_change(new_mode)
+        self.update()
+
+    def _menu_button_center(self):
         w, h = self.width(), self.height()
         length = self._current_length()
         depth = self._current_depth()
-        size = self._control_button_size()
-        gap = size * 1.15
+        size = L["glyphSize"] * L["themeButtonScale"]
         if self._edge == "right":
-            mid_x = w - depth / 2
-            mid_y = (h + length) / 2 - L["padBottom"] * 0.55
-        elif self._edge == "left":
-            mid_x = depth / 2
-            mid_y = (h + length) / 2 - L["padBottom"] * 0.55
-        elif self._edge == "top":
-            mid_x = (w + length) / 2 - L["padBottom"] * 0.55
-            mid_y = depth / 2
-        else:
-            mid_x = (w + length) / 2 - L["padBottom"] * 0.55
-            mid_y = h - depth / 2
-        return (mid_x - gap / 2, mid_y), (mid_x + gap / 2, mid_y), size
+            return w - depth / 2, (h + length) / 2 - L["padBottom"] * 0.42, size
+        if self._edge == "left":
+            return depth / 2, (h + length) / 2 - L["padBottom"] * 0.42, size
+        if self._edge == "top":
+            return (w + length) / 2 - L["padBottom"] * 0.42, depth / 2, size
+        return (w + length) / 2 - L["padBottom"] * 0.42, h - depth / 2, size
 
-    def _hit_control_button(self, pos):
+    def _hit_menu_button(self, pos):
         if self._progress < 0.35:
-            return None
-        theme_xy, menu_xy, size = self._control_button_centers()
-        radius = size * 0.62
-        if math.hypot(pos.x() - theme_xy[0], pos.y() - theme_xy[1]) <= radius:
-            return "theme"
-        if math.hypot(pos.x() - menu_xy[0], pos.y() - menu_xy[1]) <= radius:
-            return "menu"
-        return None
+            return False
+        cx, cy, size = self._menu_button_center()
+        return math.hypot(pos.x() - cx, pos.y() - cy) <= size * 0.62
 
-    def _paint_control_buttons(self, painter, progress):
-        theme_xy, menu_xy, size = self._control_button_centers()
-        self._paint_theme_button(painter, progress, theme_xy[0], theme_xy[1], size)
-        self._paint_menu_button(painter, progress, menu_xy[0], menu_xy[1], size)
-
-    def _on_theme_spin(self, value):
-        self._theme_spin = float(value)
-        self.update()
-
-    def _cycle_theme(self):
-        self._theme_mode = next_mode(self._theme_mode)
-        self._config["themeMode"] = self._theme_mode
-        self._theme_spin_anim.stop()
-        self._theme_spin_anim.setStartValue(self._theme_spin)
-        self._theme_spin_anim.setEndValue(self._theme_spin + 180.0)
-        self._theme_spin_anim.setDuration(280)
-        self._theme_spin_anim.setEasingCurve(QEasingCurve.InOutCubic)
-        self._theme_spin_anim.start()
-        if self._on_theme_change:
-            self._on_theme_change(self._theme_mode)
-        self.update()
+    def _paint_menu_button_footer(self, painter, progress):
+        cx, cy, size = self._menu_button_center()
+        self._paint_menu_button(painter, progress, cx, cy, size)
 
     def _paint_menu_button(self, painter, progress, cx, cy, size):
         painter.save()
@@ -356,42 +415,6 @@ class NotchOverlay(QWidget):
         painter.setBrush(icon)
         for offset in (-gap, 0, gap):
             painter.drawEllipse(QPointF(cx + offset, cy), dot, dot)
-        painter.restore()
-
-    def _paint_theme_button(self, painter, progress, cx, cy, size):
-        painter.save()
-        painter.setOpacity(progress)
-        painter.translate(cx, cy)
-        painter.rotate(self._theme_spin)
-        icon = QColor(Palette["textPrimary"])
-        radius = size * 0.34
-        if self._theme_mode == "auto":
-            painter.setPen(Qt.NoPen)
-            painter.setBrush(icon)
-            painter.drawPie(
-                QRectF(-radius, -radius, radius * 2, radius * 2),
-                90 * 16,
-                180 * 16,
-            )
-            painter.setBrush(Qt.NoBrush)
-            painter.setPen(QPen(icon, max(1.5, size * 0.08), Qt.SolidLine, Qt.RoundCap))
-            painter.drawEllipse(QPointF(0, 0), radius, radius)
-        elif self._theme_mode == "light":
-            painter.setPen(QPen(icon, max(1.5, size * 0.08), Qt.SolidLine, Qt.RoundCap))
-            painter.setBrush(Qt.NoBrush)
-            painter.drawEllipse(QPointF(0, 0), radius, radius)
-            for angle in range(0, 360, 45):
-                rad = math.radians(angle)
-                painter.drawLine(
-                    QPointF(math.cos(rad) * radius * 1.15, math.sin(rad) * radius * 1.15),
-                    QPointF(math.cos(rad) * radius * 1.55, math.sin(rad) * radius * 1.55),
-                )
-        else:
-            painter.setPen(Qt.NoPen)
-            painter.setBrush(icon)
-            painter.drawEllipse(QPointF(radius * 0.18, 0), radius * 0.92, radius * 0.92)
-            painter.setBrush(QColor(Appearance["color"]))
-            painter.drawEllipse(QPointF(-radius * 0.28, 0), radius * 0.98, radius * 0.98)
         painter.restore()
 
     def _paint_arc_ring(self, painter, cx, cy, radius, sweep, fraction, track_stroke, progress_stroke):
@@ -788,11 +811,10 @@ class NotchOverlay(QWidget):
             self._show_app_menu(event.globalPos())
             return
         if event.button() == Qt.LeftButton:
-            hit = self._hit_control_button(event.pos())
-            if hit == "theme":
-                self._cycle_theme()
+            if self._hit_theme_toggle(event.pos()):
+                self._toggle_theme()
                 return
-            if hit == "menu":
+            if self._hit_menu_button(event.pos()):
                 self._show_app_menu(event.globalPos())
                 return
             idx = self._hit_cell(event.pos())
