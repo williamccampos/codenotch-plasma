@@ -11,6 +11,10 @@ if ! python3 -c "import browser_cookie3" >/dev/null 2>&1; then
   echo "Instalando browser-cookie3 para sessão corporativa do Cursor no browser..."
   python3 -m pip install --user --break-system-packages browser-cookie3 >/dev/null 2>&1 || true
 fi
+if ! command -v secret-tool >/dev/null 2>&1; then
+  echo "Antigravity: para ler credenciais do keyring, instale libsecret-tools:"
+  echo "  sudo apt install libsecret-tools"
+fi
 install -m 0755 "$ROOT/bin/codenotch-plasma" "$BIN_DIR/codenotch-plasma"
 
 cat > "$AUTO/codenotch-plasma.desktop" << EOF

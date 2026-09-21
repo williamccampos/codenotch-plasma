@@ -38,7 +38,10 @@ ANTIGRAVITY_BUSY_WINDOW = 45 * 1000
 
 
 def read_antigravity_activity(roots, now=None):
-    now_ms = int((now or datetime.now()).timestamp() * 1000)
+    if isinstance(now, (int, float)):
+        now_ms = int(now)
+    else:
+        now_ms = int((now or datetime.now()).timestamp() * 1000)
     day_start, day_end = _local_day(now_ms)
     requests_today = 0
     last_request = None

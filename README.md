@@ -9,6 +9,20 @@ Port do excelente [codenotch-gnome](https://github.com/RicardoEGG/codenotch-gnom
 > **Disclaimer:** esta versão é **exclusiva para Linux com KDE Plasma** (testado em Plasma 5.27 / Ubuntu 24.04).  
 > Não é um plasmoid de painel — é um overlay frameless que replica o visual e a experiência do notch original na borda da tela. GNOME, Windows e macOS **não são suportados**.
 
+### Limitações conhecidas
+
+> **Claude — somente CLI**  
+> O Codenotch **não detecta** login feito no app **Claude Desktop** (`~/.config/Claude`).  
+> Para o Claude aparecer no notch, é necessário autenticar pelo **Claude Code CLI** — isso cria `~/.claude/.credentials.json`:
+> ```bash
+> claude   # faça login no terminal
+> ```
+
+> **Antigravity — instabilidade no Linux (app + notch)**  
+> Em testes no KDE Plasma, o Antigravity IDE pode falhar **dentro do próprio app** (ex.: *Agent execution terminated due to error*) e, nesse estado, o notch também **não consegue ler o uso** — o language server local não responde (ex.: certificado TLS expirado nos logs).  
+> Isso **não é exclusivo do Codenotch**: quando o Antigravity não funciona na aplicação, o notch fica sem dados também.  
+> Acompanhe e contribua na issue aberta: [#1 — Validar suporte ao Antigravity IDE no Linux/KDE](https://github.com/williamccampos/codenotch-plasma/issues/1)
+
 ## Prévia
 
 | Notch expandido | Card de hover |
@@ -43,6 +57,7 @@ cd codenotch-plasma
 
 ```bash
 sudo apt install python3-pyqt5   # Ubuntu / Debian
+sudo apt install libsecret-tools # opcional — Antigravity IDE: ler credenciais do keyring
 ```
 
 O script instala em `~/.local/bin/codenotch-plasma`, registra autostart e inicia o notch na borda direita.
@@ -70,11 +85,11 @@ No ícone da bandeja do sistema, **Ferramentas** lista todas as IAs com um inter
 
 | Provider | Onde lê a credencial |
 |----------|----------------------|
-| Claude Code | `~/.claude/.credentials.json` |
+| Claude Code (**CLI** — Desktop **não** suportado) | `~/.claude/.credentials.json` |
 | Codex | `~/.codex/auth.json` |
 | Cursor Personal | sessão do Cursor IDE / agent |
 | Cursor Corp | login no browser (Edge) + [`browser-cookie3`](requirements.txt) |
-| Antigravity (`agy`) | `~/.gemini/antigravity-cli` ou `~/.gemini/antigravity` |
+| Antigravity (IDE ou `agy`) — **instável no Linux** | keyring (`gemini` / `antigravity`) ou `~/.gemini/antigravity` · ver [issue #1](https://github.com/williamccampos/codenotch-plasma/issues/1) |
 | Grok | `~/.grok/auth.json` |
 | Kiro | `~/.local/share/kiro-cli/data.sqlite3` |
 

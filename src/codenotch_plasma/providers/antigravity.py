@@ -11,8 +11,8 @@ from .antigravity_bridge import read_quota, windows_from_api
 LOAD_ENDPOINT = "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist"
 QUOTA_ENDPOINT = "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary"
 KEYRING_PREFIX = "go-keyring-base64:"
-EXPIRED_NOTE = "Sign-in expired · run agy to refresh"
-BRIDGE_NOTE = "Open agy to read the limits"
+EXPIRED_NOTE = "Sign-in expired · open Antigravity to refresh"
+BRIDGE_NOTE = "Open Antigravity to read the limits"
 
 
 class AntigravityProvider:
@@ -29,7 +29,11 @@ class AntigravityProvider:
             ide_root or home(".gemini", "antigravity"),
         ]
         self._brains = [f"{root}/brain" for root in self._roots]
-        self._token_path = f"{self._roots[0]}/antigravity-oauth-token"
+        self._token_paths = [
+            f"{self._roots[0]}/antigravity-oauth-token",
+            home(".gemini", "oauth_creds.json"),
+            f"{self._roots[1]}/oauth_creds.json",
+        ]
         self._tier = None
 
     def available(self):
@@ -74,7 +78,7 @@ class AntigravityProvider:
 
     def _local(self, note, previous=None):
         if (previous or {}).get("source") == "bridge":
-            raise ProviderError("offline", "agy is not running · open it to refresh")
+            raise ProviderError("offline", "Antigravity is not running · open it to refresh")
         activity = read_antigravity_activity(self._brains)
         snapshot = {
             "windows": [{
@@ -111,21 +115,30 @@ class AntigravityProvider:
         return {"status": status, "json": parsed}
 
     def _token(self):
-        raw = _keyring_secret() or _file_secret(self._token_path)
+        raw = _keyring_secret()
+        if not raw:
+            for path in self._token_paths:
+                raw = _file_secret(path)
+                if raw:
+                    break
         token = _decode_credential(raw)
         if not token or not token.get("access_token"):
-            raise ProviderError("needsAuth", "Sign in to Antigravity (run `agy` once) to read your usage")
-        expiry = token.get("expiry")
-        expires_at = None
-        if expiry:
-            try:
-                expires_at = int(datetime.fromisoformat(str(expiry).replace("Z", "+00:00")).timestamp() * 1000)
-            except ValueError:
-                expires_at = None
+            raise ProviderError(
+                "needsAuth",
+                "Sign in to Antigravity and keep it open to read your usage",
+            )
+        expires_at = _token_expiry_ms(token)
         return {"accessToken": token["access_token"], "expiresAt": expires_at}
 
 
 def _keyring_secret():
+    raw = _keyring_secret_tool()
+    if raw:
+        return raw
+    return _keyring_secret_dbus()
+
+
+def _keyring_secret_tool():
     try:
         proc = subprocess.run(
             ["secret-tool", "lookup", "service", "gemini", "username", "antigravity"],
@@ -133,8 +146,45 @@ def _keyring_secret():
         )
         if proc.returncode == 0 and proc.stdout.strip():
             return proc.stdout
-    except (OSError, subprocess.TimeoutExpired):
+    except (OSError, subprocess.TimeoutExpired, FileNotFoundError):
         pass
+    return None
+
+
+def _keyring_secret_dbus():
+    try:
+        import contextlib
+        import dbus
+    except ImportError:
+        return None
+    try:
+        with contextlib.closing(dbus.SessionBus()) as connection:
+            secret_service = dbus.Interface(
+                connection.get_object(
+                    "org.freedesktop.secrets",
+                    "/org/freedesktop/secrets",
+                    False,
+                ),
+                "org.freedesktop.Secret.Service",
+            )
+            for attrs in (
+                {"service": "gemini", "username": "antigravity"},
+                {"service": "gemini", "account": "antigravity"},
+            ):
+                locked, unlocked = secret_service.SearchItems(attrs)
+                if not unlocked:
+                    continue
+                path = unlocked[0]
+                secret_service.Unlock([path])
+                _, session = secret_service.OpenSession(
+                    "plain",
+                    dbus.String("", variant_level=1),
+                )
+                secrets = secret_service.GetSecrets([path], session)
+                _, _, secret, _ = secrets[path]
+                return bytes(secret).decode("utf-8", "replace")
+    except Exception:
+        return None
     return None
 
 
@@ -144,6 +194,25 @@ def _file_secret(path):
             return fh.read()
     except OSError:
         return None
+
+
+def _token_expiry_ms(token):
+    expiry = token.get("expiry")
+    if expiry:
+        try:
+            return int(datetime.fromisoformat(str(expiry).replace("Z", "+00:00")).timestamp() * 1000)
+        except ValueError:
+            pass
+    raw = token.get("expiry_date")
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if value < 1_000_000_000_000:
+        value *= 1000
+    return int(value)
 
 
 def _decode_credential(raw):

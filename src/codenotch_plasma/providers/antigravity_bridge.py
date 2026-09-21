@@ -32,18 +32,21 @@ def discover():
 
 def read_quota():
     global _cached
-    if _cached:
-        windows = _quota(_cached)
-        if windows:
-            return _summarize(windows)
-        _cached = None
-    endpoints = discover()
-    for endpoint in endpoints:
-        windows = _quota(endpoint)
-        if windows:
-            _cached = endpoint
-            return _summarize(windows)
-    return {"windows": [], "headlineID": None, "found": len(endpoints) > 0}
+    try:
+        if _cached:
+            windows = _quota(_cached)
+            if windows:
+                return _summarize(windows)
+            _cached = None
+        endpoints = discover()
+        for endpoint in endpoints:
+            windows = _quota(endpoint)
+            if windows:
+                _cached = endpoint
+                return _summarize(windows)
+        return {"windows": [], "headlineID": None, "found": len(endpoints) > 0}
+    except Exception:
+        return {"windows": [], "headlineID": None, "found": False}
 
 
 def _summarize(windows):
@@ -59,7 +62,7 @@ def _quota(endpoint):
     plain = _post(f"http://{address}", endpoint.get("csrf"))
     if plain["status"] == 200:
         return _windows_from(plain["text"])
-    if plain["status"] not in (0, 400):
+    if plain["status"] not in (0, 400, 404):
         return []
     secure = _post(f"https://{address}", endpoint.get("csrf"))
     return _windows_from(secure["text"]) if secure["status"] == 200 else []
@@ -73,7 +76,7 @@ def _post(url, csrf):
     try:
         with urlopen(req, timeout=TIMEOUT, context=_UNVERIFIED if url.startswith("https") else None) as resp:
             return {"status": resp.status, "text": resp.read().decode("utf-8", "replace")}
-    except URLError:
+    except Exception:
         return {"status": 0, "text": ""}
 
 
