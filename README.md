@@ -22,18 +22,51 @@ O símbolo do Codenotch é um **notch minimalista** — uma pill com recorte lat
 
 | Contexto | Comportamento |
 |----------|---------------|
-| **Bandeja do sistema** | Sincronizado com o tema (claro → preto, escuro → branco) |
-| **Menu de aplicativos** | Mesma lógica — atualizado ao iniciar e ao trocar o tema |
-| **Notch** | `auto`, `escuro` ou `claro` — botão no rodapé do notch ou menu **Aparência** na bandeja |
+| **Bandeja do sistema** | Ícone **sempre branco** (fixo) |
+| **Menu de aplicativos** | Ícone **sempre branco** (fixo) |
+| **Notch** | Corpo e logos alternam entre escuro e claro conforme o tema |
 
 Arquivos do ícone: [`icons/codenotch-plasma.svg`](icons/codenotch-plasma.svg) · propostas exploratórias em [`icons/preview/`](icons/preview/)
+
+![Ícone no menu de aplicativos](docs/screenshots/launcher-icon.png)
+
+## Tema
+
+O **notch** suporta três modos, configuráveis de duas formas:
+
+| Modo | Notch | Logos das IAs |
+|------|-------|---------------|
+| **Automático** | Segue o tema do Plasma | Brancos no escuro, pretos no claro |
+| **Escuro** | Corpo preto | Brancos |
+| **Claro** | Corpo branco | Pretos |
+
+### Alternar pelo notch
+
+Abaixo da última IA há um botão de tema (anel menor, separado por um traço discreto):
+
+| Ícone | Significado | Ao clicar |
+|-------|-------------|-----------|
+| ☀️ **Sol** | Notch está escuro | Alterna para **claro** |
+| 🌙 **Lua** | Notch está claro | Alterna para **escuro** |
+
+O botão do notch alterna apenas entre **escuro ↔ claro** (sem ciclar o automático). Em modo automático, o ícone mostra sol ou lua conforme o tema aplicado no momento.
+
+No rodapé do notch, o botão **···** abre o mesmo menu da bandeja (Ferramentas, Aparência, Sair).
+
+### Alternar pela bandeja
+
+Clique direito no ícone da bandeja → **Aparência** → escolha **Automático**, **Escuro** ou **Claro**.
+
+| Tema escuro | Tema claro |
+|:---:|:---:|
+| ![Notch tema escuro](docs/screenshots/notch-rings.png) | ![Notch tema claro](docs/screenshots/notch-light.png) |
 
 ## Instalar
 
 O jeito mais simples é pelo **pacote `.deb`**, publicado automaticamente em cada release do GitHub:
 
 1. Abra a [página de Releases](https://github.com/williamccampos/codenotch-plasma/releases)
-2. Baixe `codenotch-plasma_<versão>_amd64.deb` (ex.: `0.2.0`)
+2. Baixe `codenotch-plasma_<versão>_amd64.deb` (ex.: `0.2.8`)
 3. Instale:
 
 ```bash
@@ -72,9 +105,10 @@ O pacote instala o binário em `/usr/bin/codenotch-plasma`, registra **autostart
 
 ## O que é
 
-Um pill preto colado na borda da tela que desdobra ao passar o mouse, mostrando o uso dos seus assistentes de código em tempo real:
+Um pill colado na borda da tela que desdobra ao passar o mouse, mostrando o uso dos seus assistentes de código em tempo real:
 
 - **Anéis coloridos** por provider — verde (0–49%), amarelo (50–69%), laranja (70–100%)
+- **Tema escuro ou claro** — alternância rápida pelo sol/lua no notch ou pelo menu Aparência
 - **Card de hover** com limites, horários de reset e sessões ativas
 - **Anel duplo no Codex** — externo (5h) + interno (semanal)
 - **Refresh automático** quando os limites resetam
@@ -107,9 +141,20 @@ O script instala em `~/.local/bin/codenotch-plasma`, registra autostart e inicia
 sudo apt install ./dist/codenotch-plasma_0.1.1_amd64.deb
 ```
 
-**Uso:** passe o mouse na borda → notch desdobra. Clique esquerdo abre o dashboard do provider. Clique direito: **Sempre aberto** ou **Sair**.
+**Uso:** passe o mouse na borda → notch desdobra. Clique esquerdo em um anel abre o dashboard do provider. Clique direito no notch ou na bandeja abre o menu completo.
 
-### Menu da bandeja — Ferramentas
+### Menu da bandeja
+
+O menu da bandeja (também acessível pelo **···** no rodapé do notch ou clique direito no notch) contém:
+
+| Item | Função |
+|------|--------|
+| **Sempre aberto** | Mantém o notch desdobrado |
+| **Ferramentas** | Liga/desliga cada IA no notch |
+| **Aparência** | Automático, Escuro ou Claro |
+| **Sair do Codenotch** | Encerra o aplicativo |
+
+### Ferramentas
 
 No ícone da bandeja do sistema, **Ferramentas** lista todas as IAs com um interruptor para cada uma — igual às preferências do codenotch-gnome:
 
@@ -142,7 +187,7 @@ Se nenhum provider estiver disponível, anéis de demonstração são exibidos p
 
 ### Logos
 
-Marcas oficiais em PNG para Cursor, Kiro, Claude, Grok e Antigravity (fonte: [vinzdg/codenotch](https://github.com/vinzdg/codenotch) / Lobe Icons, MIT). Codex usa o vetor OpenAI do projeto original. Detalhes em [`src/codenotch_plasma/assets/NOTICE.md`](src/codenotch_plasma/assets/NOTICE.md).
+Marcas oficiais com variantes clara/escura para Cursor, Kiro, Claude, Grok, Antigravity e OpenAI/Codex (fonte: [vinzdg/codenotch](https://github.com/vinzdg/codenotch) / [Lobe Icons](https://github.com/lobehub/lobe-icons), MIT). Detalhes em [`src/codenotch_plasma/assets/NOTICE.md`](src/codenotch_plasma/assets/NOTICE.md).
 
 ### Codex — anel duplo
 
@@ -199,7 +244,8 @@ Codenotch lê credenciais **apenas localmente** e nunca as envia para servidores
 - Design, geometria, paleta e glyphs: [vinzdg/codenotch](https://github.com/vinzdg/codenotch)
 - Port GNOME: [RicardoEGG/codenotch-gnome](https://github.com/RicardoEGG/codenotch-gnome)
 - Port KDE Plasma: [williamccampos/codenotch-plasma](https://github.com/williamccampos/codenotch-plasma)
-- Logos Claude / Grok / Antigravity: [Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT), via codenotch
+- Logos Claude / Grok / Antigravity / OpenAI: [Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT), via codenotch
+- Ícones sol/lua do toggle de tema: [Lucide](https://github.com/lucide-icons/lucide) (ISC)
 
 ## Licença
 
