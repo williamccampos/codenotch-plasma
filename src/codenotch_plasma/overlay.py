@@ -19,6 +19,7 @@ from .layout import (
     is_dark_notch, ring_center, shape_length,
 )
 from .theme import normalize_mode, toggle_fixed_mode
+from .theme_icons import draw_theme_icon
 from .shape import card_path, edge_notch_path, lerp
 from .store import dual_ring_windows, glyph_dimmed, headline_of, headline_text
 
@@ -319,36 +320,6 @@ class NotchOverlay(QWidget):
             painter.drawLine(QPointF(mx, my - span / 2), QPointF(mx, my + span / 2))
         painter.setOpacity(1.0)
 
-    def _paint_sun_icon(self, painter, cx, cy, size):
-        icon = QColor(Palette["textPrimary"])
-        radius = size * 0.24
-        stroke = max(2.0, size * 0.085)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(icon)
-        painter.drawEllipse(QPointF(cx, cy), radius, radius)
-        painter.setBrush(Qt.NoBrush)
-        painter.setPen(QPen(icon, stroke, Qt.SolidLine, Qt.RoundCap))
-        ray_inner = radius * 1.28
-        ray_outer = radius * 2.05
-        for angle in range(0, 360, 45):
-            rad = math.radians(angle)
-            painter.drawLine(
-                QPointF(cx + math.cos(rad) * ray_inner, cy + math.sin(rad) * ray_inner),
-                QPointF(cx + math.cos(rad) * ray_outer, cy + math.sin(rad) * ray_outer),
-            )
-
-    def _paint_moon_icon(self, painter, cx, cy, size):
-        icon = QColor(Palette["textPrimary"])
-        radius = size * 0.26
-        crescent = QPainterPath()
-        crescent.addEllipse(QPointF(cx - radius * 0.08, cy), radius, radius)
-        cut = QPainterPath()
-        cut.addEllipse(QPointF(cx + radius * 0.52, cy - radius * 0.04), radius * 0.88, radius * 0.88)
-        crescent = crescent.subtracted(cut)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(icon)
-        painter.drawPath(crescent)
-
     def _paint_theme_toggle(self, painter, t):
         cx, cy = self._theme_toggle_center()
         painter.save()
@@ -361,11 +332,9 @@ class NotchOverlay(QWidget):
         painter.setPen(track)
         painter.setBrush(Qt.NoBrush)
         painter.drawEllipse(QPointF(cx, cy), radius, radius)
-        icon_size = L["glyphSize"] * self._theme_toggle_scale()
-        if is_dark_notch():
-            self._paint_sun_icon(painter, cx, cy, icon_size)
-        else:
-            self._paint_moon_icon(painter, cx, cy, icon_size)
+        icon_size = L["glyphSize"] * self._theme_toggle_scale() * 1.08
+        kind = "sun" if is_dark_notch() else "moon"
+        draw_theme_icon(painter, kind, cx, cy, icon_size, Palette["textPrimary"])
         painter.restore()
 
     def _hit_theme_toggle(self, pos):
