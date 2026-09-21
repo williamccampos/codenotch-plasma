@@ -49,7 +49,20 @@ O script instala em `~/.local/bin/codenotch-plasma`, registra autostart e inicia
 
 **Uso:** passe o mouse na borda → notch desdobra. Clique esquerdo abre o dashboard do provider. Clique direito: **Sempre aberto** ou **Sair**.
 
-No ícone da bandeja do sistema: **Ferramentas** lista todas as IAs (instaladas ou não) com interruptor para mostrar ou esconder cada uma no notch — igual às preferências do codenotch-gnome.
+### Menu da bandeja — Ferramentas
+
+No ícone da bandeja do sistema, **Ferramentas** lista todas as IAs com um interruptor para cada uma — igual às preferências do codenotch-gnome:
+
+| Status no menu | Significado |
+|----------------|-------------|
+| **Instalado** | Credenciais detectadas na máquina — pode aparecer no notch |
+| **Não encontrado nesta máquina** | Ferramenta ainda não instalada ou sem login — não entra no notch |
+
+**Regras (como no original):**
+
+- Só entram no notch IAs **instaladas** e **habilitadas** no menu
+- Ao habilitar uma IA nova, ela aparece **no final** do notch; ao desabilitar, o notch encolhe
+- A ordem é salva em `providerOrder` no `config.json`
 
 ## Providers suportados
 
@@ -64,6 +77,10 @@ No ícone da bandeja do sistema: **Ferramentas** lista todas as IAs (instaladas 
 | Kiro | `~/.local/share/kiro-cli/data.sqlite3` |
 
 Se nenhum provider estiver disponível, anéis de demonstração são exibidos para você avaliar o visual.
+
+### Logos
+
+Marcas oficiais em PNG para Cursor, Kiro, Claude, Grok e Antigravity (fonte: [vinzdg/codenotch](https://github.com/vinzdg/codenotch) / Lobe Icons, MIT). Codex usa o vetor OpenAI do projeto original. Detalhes em [`src/codenotch_plasma/assets/NOTICE.md`](src/codenotch_plasma/assets/NOTICE.md).
 
 ### Codex — anel duplo
 
@@ -90,6 +107,7 @@ Arquivo: `~/.config/codenotch-plasma/config.json` — veja [`config.example.json
 | `color` | `#000000` | Cor do corpo |
 | `opacity` | `1.0` | Opacidade do corpo |
 | `disabledProviders` | `[]` | IDs de providers desabilitados |
+| `providerOrder` | `[]` | Ordem dos anéis no notch (novos entram no final) |
 
 **Logs e cache:** `/tmp/codenotch-plasma.log` · `~/.cache/codenotch/readings.json`
 
@@ -110,6 +128,7 @@ Codenotch lê credenciais **apenas localmente** e nunca as envia para servidores
 - Design, geometria, paleta e glyphs: [vinzdg/codenotch](https://github.com/vinzdg/codenotch)
 - Port GNOME: [RicardoEGG/codenotch-gnome](https://github.com/RicardoEGG/codenotch-gnome)
 - Port KDE Plasma: [williamccampos/codenotch-plasma](https://github.com/williamccampos/codenotch-plasma)
+- Logos Claude / Grok / Antigravity: [Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT), via codenotch
 
 ## Licença
 

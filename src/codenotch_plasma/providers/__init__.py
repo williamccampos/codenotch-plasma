@@ -1,3 +1,4 @@
+from ..provider_order import arrange
 from .antigravity import AntigravityProvider
 from .claude import ClaudeProvider
 from .codex import CodexProvider
@@ -36,7 +37,7 @@ def tool_catalog():
     return catalog
 
 
-def discover_providers(disabled=None):
+def discover_providers(disabled=None, order=None):
     disabled = set(disabled or ())
     found = []
     for cls, _title in TOOL_SPECS:
@@ -45,4 +46,4 @@ def discover_providers(disabled=None):
             continue
         if provider.available():
             found.append(provider)
-    return found
+    return arrange(found, order)

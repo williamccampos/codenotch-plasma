@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QAction, QApplication, QMenu, QSystemTrayIcon
 
 from .layout import configure_layout, set_appearance
 from .overlay import NotchOverlay
+from .provider_order import joining_connected, remember
 from .providers import discover_providers, tool_catalog
 from .store import UsageStore
 
@@ -58,6 +59,7 @@ def load_config():
         "color": "#000000",
         "opacity": 1.0,
         "disabledProviders": [],
+        "providerOrder": [],
     }
     try:
         data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
@@ -93,7 +95,10 @@ def demo_providers():
 
 
 def active_providers(config):
-    providers = discover_providers(disabled=config.get("disabledProviders"))
+    providers = discover_providers(
+        disabled=config.get("disabledProviders"),
+        order=config.get("providerOrder"),
+    )
     if providers:
         return providers
     if not any(tool["installed"] for tool in tool_catalog()):
@@ -127,6 +132,13 @@ class CodenotchApp:
     def _provider_enabled(self, provider_id):
         return provider_id not in set(self._config.get("disabledProviders") or [])
 
+    def _connected_ids(self, disabled):
+        ids = set()
+        for tool in tool_catalog():
+            if tool["id"] not in disabled and tool["installed"]:
+                ids.add(tool["id"])
+        return ids
+
     def _set_provider_enabled(self, provider_id, enabled):
         disabled = list(self._config.get("disabledProviders") or [])
         has = provider_id in disabled
@@ -135,8 +147,15 @@ class CodenotchApp:
         elif not enabled and not has:
             disabled.append(provider_id)
         self._config["disabledProviders"] = disabled
+
+        order = list(self._config.get("providerOrder") or [])
+        if not order:
+            order = [p.id for p in self._store.providers]
+        if enabled:
+            order = joining_connected(provider_id, order, self._connected_ids(disabled))
+        providers = discover_providers(disabled=disabled, order=order)
+        self._config["providerOrder"] = remember([p.id for p in providers], order)
         save_config(self._config)
-        providers = active_providers(self._config)
         self._store.reload_providers(providers)
         self._overlay.reload_providers()
 
