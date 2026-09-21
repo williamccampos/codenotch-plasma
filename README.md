@@ -18,10 +18,14 @@ Port do excelente [codenotch-gnome](https://github.com/RicardoEGG/codenotch-gnom
 > claude   # faça login no terminal
 > ```
 
-> **Antigravity — instabilidade no Linux (app + notch)**  
-> Em testes no KDE Plasma, o Antigravity IDE pode falhar **dentro do próprio app** (ex.: *Agent execution terminated due to error*) e, nesse estado, o notch também **não consegue ler o uso** — o language server local não responde (ex.: certificado TLS expirado nos logs).  
-> Isso **não é exclusivo do Codenotch**: quando o Antigravity não funciona na aplicação, o notch fica sem dados também.  
-> Acompanhe e contribua na issue aberta: [#1 — Validar suporte ao Antigravity IDE no Linux/KDE](https://github.com/williamccampos/codenotch-plasma/issues/1)
+> **Antigravity — certificado TLS expirado no pacote 1.x (Linux)**  
+> O Antigravity **1.23.x** empacota um certificado localhost que **expirou em 04/09/2026** (`cert.pem` em `/usr/share/antigravity/.../languageServer/`). Sintomas: *Agent execution terminated due to error*, `certificate has expired` nos logs, e o notch sem dados.  
+> **Workaround** (app volta a funcionar; só afeta TLS local 127.0.0.1):
+> ```bash
+> ./scripts/fix-antigravity-tls.sh   # cria launcher com NODE_TLS_REJECT_UNAUTHORIZED=0
+> ```
+> Depois feche o Antigravity e abra de novo pelo menu. Solução definitiva: migrar para **Antigravity 2.x** quando disponível no APT.  
+> Detalhes: [#1 — Validar suporte ao Antigravity IDE no Linux/KDE](https://github.com/williamccampos/codenotch-plasma/issues/1)
 
 ## Prévia
 
