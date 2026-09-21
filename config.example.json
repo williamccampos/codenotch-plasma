@@ -11,6 +11,7 @@
   "refreshInterval": 60,
   "color": "#000000",
   "opacity": 1.0,
+  "themeMode": "auto",
   "disabledProviders": [],
   "providerOrder": []
 }

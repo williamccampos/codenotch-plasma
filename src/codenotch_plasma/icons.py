@@ -7,6 +7,8 @@ from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QImage, QPixmap
 
+from .theme import normalize_mode, resolve_dark
+
 _ICON_NAME = "codenotch-plasma"
 _SVG_FILL = "#FFFFFF"
 _ICON_FILL_DARK = "#FFFFFF"
@@ -14,6 +16,12 @@ _ICON_FILL_LIGHT = "#000000"
 _ICON_SIZES = (16, 22, 24, 32, 48, 64, 128, 256)
 _USER_ICON_ROOT = Path.home() / ".local/share/icons/hicolor"
 _last_sync_fill = None
+_active_mode = "auto"
+
+
+def set_theme_mode(mode):
+    global _active_mode
+    _active_mode = normalize_mode(mode)
 
 
 def _search_paths():
@@ -48,7 +56,8 @@ def is_dark_theme():
 
 
 def icon_fill_for_theme():
-    return _ICON_FILL_DARK if is_dark_theme() else _ICON_FILL_LIGHT
+    dark = resolve_dark(_active_mode, is_dark_theme())
+    return _ICON_FILL_DARK if dark else _ICON_FILL_LIGHT
 
 
 def _svg_png(svg_path: Path, size: int, fill: str) -> bytes | None:

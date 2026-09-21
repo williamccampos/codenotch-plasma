@@ -1,5 +1,7 @@
 """Geometry and palette measured from Codenotch's design frame (layout.js)."""
 
+from PyQt5.QtGui import QColor
+
 FRAME_SCALE = 44 / 117
 CAP_RATIO = 0.714
 
@@ -36,6 +38,7 @@ def configure_layout(scale=1.0, show_labels=True, text_scale=1.0):
         "innerTrackStroke": px(9),
         "innerProgressStroke": px(4.5),
         "glyphSize": px(46),
+        "themeButtonScale": 0.58,
         "ringLabelGap": px(26.9) if show_labels else 0,
         "percentFont": font_size(27),
         "activityDiameter": px(72),
@@ -75,10 +78,12 @@ configure_layout()
 
 PURE_WHITE = "#FFFFFF"
 PURE_BLACK = "#000000"
+RING_TRACK = "#303030"
+BAR_TRACK = "#2D2D2D"
 
 Palette = {
-    "ringTrack": PURE_WHITE,
-    "barTrack": PURE_WHITE,
+    "ringTrack": RING_TRACK,
+    "barTrack": BAR_TRACK,
     "ample": "#00FF88",
     "watch": "#F2FF00",
     "critical": "#FF3F00",
@@ -87,20 +92,20 @@ Palette = {
 }
 
 
+def is_dark_notch():
+    return QColor(Appearance["color"]).lightness() < 128
+
+
 def apply_system_theme(dark=True, opacity=None):
-    """Apply pure black/white structural colors to the notch."""
+    """Apply pure black/white structural colors to the notch body and text."""
     if dark:
         Palette.update({
-            "ringTrack": PURE_WHITE,
-            "barTrack": PURE_WHITE,
             "textPrimary": PURE_WHITE,
             "textSecondary": PURE_WHITE,
         })
         set_appearance(PURE_BLACK, opacity if opacity is not None else Appearance["opacity"])
     else:
         Palette.update({
-            "ringTrack": PURE_BLACK,
-            "barTrack": PURE_BLACK,
             "textPrimary": PURE_BLACK,
             "textSecondary": PURE_BLACK,
         })

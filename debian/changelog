@@ -1,3 +1,17 @@
+codenotch-plasma (0.2.0-1) unstable; urgency=medium
+
+  * Add notch theme modes (auto, dark, light) with in-notch toggle button.
+  * Adapt provider logos for dark/light notch backgrounds.
+  * Keep ring and bar track backgrounds gray regardless of theme.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 01:46:00 -0300
+
+codenotch-plasma (0.1.7-1) unstable; urgency=medium
+
+  * Keep ring and bar track backgrounds gray regardless of theme.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 01:44:00 -0300
+
 codenotch-plasma (0.1.6-1) unstable; urgency=medium
 
   * Sync tray and menu icons with the Plasma theme using pure black/white.

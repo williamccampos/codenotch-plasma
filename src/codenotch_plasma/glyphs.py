@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QFont, QPainterPath, QPixmap, QTransform
+from PyQt5.QtGui import QColor, QFont, QImage, QPainterPath, QPixmap, QTransform
 
-from .layout import Palette
+from .layout import Palette, is_dark_notch
 
 _ASSETS = Path(__file__).with_name("assets")
 _DATA = json.loads((Path(__file__).with_name("glyphs.json")).read_text())
@@ -20,6 +20,7 @@ _EXTRA_OUTLINES = {
 GLYPH_SCALE = {**_DATA["scale"], "cursor": 0.92, "kiro": 0.95}
 OUTLINES = {**_DATA["outlines"], **_EXTRA_OUTLINES}
 _ASSET_CACHE = {}
+_ADAPTED_CACHE = {}
 
 
 def _load_asset(name):
@@ -32,6 +33,37 @@ def _load_asset(name):
     pix = QPixmap(str(path))
     _ASSET_CACHE[name] = pix if not pix.isNull() else None
     return _ASSET_CACHE[name]
+
+
+def _average_luminance(image: QImage) -> float:
+    total = 0.0
+    count = 0
+    for y in range(image.height()):
+        for x in range(image.width()):
+            alpha = QColor(image.pixel(x, y)).alpha()
+            if alpha < 16:
+                continue
+            color = QColor(image.pixel(x, y))
+            total += 0.2126 * color.red() + 0.7152 * color.green() + 0.0722 * color.blue()
+            count += 1
+    return total / count if count else 128.0
+
+
+def _adapt_pixmap(name, pixmap: QPixmap, dark_notch: bool) -> QPixmap:
+    cache_key = (name, dark_notch)
+    if cache_key in _ADAPTED_CACHE:
+        return _ADAPTED_CACHE[cache_key]
+
+    image = pixmap.toImage().convertToFormat(QImage.Format_ARGB32)
+    luminance = _average_luminance(image)
+    if dark_notch and luminance < 90:
+        image.invertPixels(QImage.InvertRgb)
+    elif not dark_notch and luminance > 175:
+        image.invertPixels(QImage.InvertRgb)
+
+    adapted = QPixmap.fromImage(image)
+    _ADAPTED_CACHE[cache_key] = adapted
+    return adapted
 
 
 def glyph_path(name, cx, cy, size):
@@ -56,14 +88,22 @@ def glyph_path(name, cx, cy, size):
     return t.map(path)
 
 
-def draw_glyph(painter, name, cx, cy, size, alpha=1.0, badge=None):
+def clear_adapted_cache():
+    _ADAPTED_CACHE.clear()
+
+
+def draw_glyph(painter, name, cx, cy, size, alpha=1.0, badge=None, dark_notch=None):
     painter.save()
+    if dark_notch is None:
+        dark_notch = is_dark_notch()
     base = QColor(Palette["textPrimary"])
     color = QColor(base.red(), base.green(), base.blue(), int(255 * max(0.0, min(1.0, alpha))))
     pix = _load_asset(name)
     if pix is not None:
         target = int(size * GLYPH_SCALE.get(name, 1))
-        scaled = pix.scaled(target, target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        scaled = _adapt_pixmap(name, pix, dark_notch).scaled(
+            target, target, Qt.KeepAspectRatio, Qt.SmoothTransformation,
+        )
         x = int(cx - scaled.width() / 2)
         y = int(cy - scaled.height() / 2)
         painter.setOpacity(alpha)
@@ -87,12 +127,14 @@ def draw_glyph(painter, name, cx, cy, size, alpha=1.0, badge=None):
                 int(cy + metrics.ascent() / 3),
                 letter,
             )
+    badge_fg = QColor("#000000" if dark_notch else "#FFFFFF")
+    badge_bg = QColor("#FFFFFF" if dark_notch else "#000000")
     if badge == "corp":
         r = max(5, int(size * 0.14))
         painter.setPen(Qt.NoPen)
         painter.setBrush(QColor("#00FF88"))
         painter.drawEllipse(int(cx + size * 0.18), int(cy - size * 0.30), r, r)
-        painter.setPen(QColor("#000000"))
+        painter.setPen(badge_fg)
         font = QFont("Noto Sans")
         font.setPixelSize(max(7, r))
         font.setWeight(QFont.Bold)
@@ -106,9 +148,9 @@ def draw_glyph(painter, name, cx, cy, size, alpha=1.0, badge=None):
     elif badge == "personal":
         r = max(5, int(size * 0.14))
         painter.setPen(Qt.NoPen)
-        painter.setBrush(QColor("#FFFFFF"))
+        painter.setBrush(badge_bg)
         painter.drawEllipse(int(cx + size * 0.18), int(cy - size * 0.30), r, r)
-        painter.setPen(QColor("#000000"))
+        painter.setPen(badge_fg)
         font = QFont("Noto Sans")
         font.setPixelSize(max(7, r))
         font.setWeight(QFont.Bold)

@@ -5,12 +5,20 @@ from pathlib import Path
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QAction, QApplication, QMenu, QSystemTrayIcon
 
-from .icons import install_theme_listener, is_dark_theme, load_app_icon, sync_system_icons
+from .glyphs import clear_adapted_cache
+from .icons import (
+    install_theme_listener,
+    is_dark_theme,
+    load_app_icon,
+    set_theme_mode,
+    sync_system_icons,
+)
 from .layout import apply_system_theme, configure_layout, set_appearance
 from .overlay import NotchOverlay
 from .provider_order import joining_connected, remember
 from .providers import discover_providers, tool_catalog
 from .store import UsageStore
+from .theme import mode_label, next_mode, normalize_mode, resolve_dark
 
 
 CONFIG_PATH = Path.home() / ".config" / "codenotch-plasma" / "config.json"
@@ -58,6 +66,7 @@ def load_config():
         "refreshInterval": 60,
         "color": "#000000",
         "opacity": 1.0,
+        "themeMode": "auto",
         "disabledProviders": [],
         "providerOrder": [],
     }
@@ -116,7 +125,11 @@ class CodenotchApp:
             refresh_interval=int(self._config.get("refreshInterval", 60)),
         )
         self._tray = None
-        self._overlay = NotchOverlay(self._store, self._config)
+        self._overlay = NotchOverlay(
+            self._store,
+            self._config,
+            on_theme_change=self._on_theme_mode_changed,
+        )
         self._overlay.show()
         self._store.start()
         if not self._config.get("alwaysOpen"):
@@ -166,17 +179,35 @@ class CodenotchApp:
         self._store.reload_providers(providers)
         self._overlay.reload_providers()
 
+    def _resolved_dark(self):
+        mode = normalize_mode(self._config.get("themeMode", "auto"))
+        return resolve_dark(mode, is_dark_theme())
+
     def _apply_system_icons(self):
-        sync_system_icons()
+        mode = normalize_mode(self._config.get("themeMode", "auto"))
+        dark = resolve_dark(mode, is_dark_theme())
+        set_theme_mode(mode)
+        sync_system_icons(force=True)
         apply_system_theme(
-            dark=is_dark_theme(),
+            dark=dark,
             opacity=float(self._config.get("opacity", 1)),
         )
+        clear_adapted_cache()
+        self._overlay.set_theme_mode(mode)
         self._overlay.update()
         icon = load_app_icon(22, for_tray=True)
         if self._tray is not None:
             self._tray.setIcon(icon)
+            self._tray.setContextMenu(self._build_menu())
         self._app.setWindowIcon(load_app_icon(32))
+
+    def _on_theme_mode_changed(self, mode):
+        self._config["themeMode"] = normalize_mode(mode)
+        save_config(self._config)
+        self._apply_system_icons()
+
+    def _cycle_theme_mode(self):
+        self._on_theme_mode_changed(next_mode(self._config.get("themeMode", "auto")))
 
     def _build_tray(self):
         tray = QSystemTrayIcon(self._app)
@@ -204,6 +235,18 @@ class CodenotchApp:
             pid = tool["id"]
             action.toggled.connect(lambda checked, pid=pid: self._set_provider_enabled(pid, checked))
             tools.addAction(action)
+        appearance = menu.addMenu("Aparência")
+        appearance.setTitle("Aparência")
+        current = normalize_mode(self._config.get("themeMode", "auto"))
+        for mode in ("auto", "dark", "light"):
+            action = QAction(mode_label(mode), appearance)
+            action.setCheckable(True)
+            action.setChecked(current == mode)
+            action.triggered.connect(lambda _checked=False, mode=mode: self._on_theme_mode_changed(mode))
+            appearance.addAction(action)
+        theme_cycle = QAction(f"Tema atual: {mode_label(current)}", menu)
+        theme_cycle.triggered.connect(self._cycle_theme_mode)
+        menu.addAction(theme_cycle)
         menu.addSeparator()
         quit_act = QAction("Sair do Codenotch", menu)
         quit_act.triggered.connect(self._app.quit)

@@ -22,8 +22,9 @@ O símbolo do Codenotch é um **notch minimalista** — uma pill com recorte lat
 
 | Contexto | Comportamento |
 |----------|---------------|
-| **Bandeja do sistema** | Sincronizado com o tema do Plasma (claro → ícone escuro, escuro → ícone claro) |
-| **Menu de aplicativos** | Mesma lógica — atualizado automaticamente ao iniciar e ao trocar o tema |
+| **Bandeja do sistema** | Sincronizado com o tema (claro → preto, escuro → branco) |
+| **Menu de aplicativos** | Mesma lógica — atualizado ao iniciar e ao trocar o tema |
+| **Notch** | `auto`, `escuro` ou `claro` — botão no rodapé do notch ou menu **Aparência** na bandeja |
 
 Arquivos do ícone: [`icons/codenotch-plasma.svg`](icons/codenotch-plasma.svg) · propostas exploratórias em [`icons/preview/`](icons/preview/)
 
@@ -32,7 +33,7 @@ Arquivos do ícone: [`icons/codenotch-plasma.svg`](icons/codenotch-plasma.svg) �
 O jeito mais simples é pelo **pacote `.deb`**, publicado automaticamente em cada release do GitHub:
 
 1. Abra a [página de Releases](https://github.com/williamccampos/codenotch-plasma/releases)
-2. Baixe `codenotch-plasma_<versão>_amd64.deb` (ex.: `0.1.6`)
+2. Baixe `codenotch-plasma_<versão>_amd64.deb` (ex.: `0.2.0`)
 3. Instale:
 
 ```bash
@@ -165,8 +166,9 @@ Arquivo: `~/.config/codenotch-plasma/config.json` — veja [`config.example.json
 | `textScale` | `1.0` | Escala do texto |
 | `openDelay` | `150` | Delay para abrir (ms) |
 | `refreshInterval` | `60` | Intervalo de refresh (s) |
-| `color` | `#000000` | Cor do corpo |
+| `color` | `#000000` | Cor do corpo (sobrescrita pelo `themeMode`) |
 | `opacity` | `1.0` | Opacidade do corpo |
+| `themeMode` | `auto` | Tema do notch: `auto`, `dark` ou `light` |
 | `disabledProviders` | `[]` | IDs de providers desabilitados |
 | `providerOrder` | `[]` | Ordem dos anéis no notch (novos entram no final) |
 

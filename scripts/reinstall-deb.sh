@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEB="${1:-$HOME/Downloads/codenotch-plasma_0.1.6_amd64.deb}"
+DEB="${1:-$HOME/Downloads/codenotch-plasma_0.2.0_amd64.deb}"
 
 if [[ ! -f "$DEB" ]]; then
   echo "Pacote não encontrado: $DEB" >&2

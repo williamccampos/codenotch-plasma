@@ -18,6 +18,7 @@ from .layout import (
     Appearance, L, Palette, band, band_color, body_depth,
     ring_center, shape_length,
 )
+from .theme import next_mode, normalize_mode
 from .shape import card_path, edge_notch_path, lerp
 from .store import dual_ring_windows, glyph_dimmed, headline_of, headline_text
 
@@ -36,10 +37,13 @@ def _qcolor(hex_color, alpha=1.0):
 
 
 class NotchOverlay(QWidget):
-    def __init__(self, store, config, parent=None):
+    def __init__(self, store, config, parent=None, on_theme_change=None):
         super().__init__(parent)
         self._store = store
         self._config = config
+        self._on_theme_change = on_theme_change
+        self._theme_mode = normalize_mode(config.get("themeMode", "auto"))
+        self._theme_spin = 0.0
         self._edge = config.get("edge", "right")
         self._position = max(0.0, min(1.0, float(config.get("position", 0.5))))
         self._always_open = bool(config.get("alwaysOpen", False))
@@ -61,6 +65,8 @@ class NotchOverlay(QWidget):
         self._leave_timer.timeout.connect(self._maybe_fold)
         self._anim = QVariantAnimation(self)
         self._anim.valueChanged.connect(self._on_progress)
+        self._theme_spin_anim = QVariantAnimation(self)
+        self._theme_spin_anim.valueChanged.connect(self._on_theme_spin)
         self._activity_timer = QTimer(self)
         self._activity_timer.timeout.connect(self._tick_activity)
         self._activity_timer.start(16)
@@ -87,6 +93,9 @@ class NotchOverlay(QWidget):
         store.changed.connect(lambda _id: self.update())
         self._relayout()
         self._update_mask()
+
+    def set_theme_mode(self, mode):
+        self._theme_mode = normalize_mode(mode)
 
     def reload_providers(self):
         self._sweeps = {p.id: self._sweeps.get(p.id, 0.0) for p in self._store.providers}
@@ -277,6 +286,91 @@ class NotchOverlay(QWidget):
 
         if self._hover_index >= 0 and t > 0.7:
             self._paint_card(painter, self._hover_index)
+        if t > 0.35:
+            self._paint_theme_button(painter, t)
+
+    def _theme_button_size(self):
+        return L["glyphSize"] * L["themeButtonScale"]
+
+    def _theme_button_center(self):
+        w, h = self.width(), self.height()
+        length = self._current_length()
+        depth = self._current_depth()
+        size = self._theme_button_size()
+        if self._edge == "right":
+            cx = w - depth / 2
+            cy = (h + length) / 2 - L["padBottom"] * 0.55
+        elif self._edge == "left":
+            cx = depth / 2
+            cy = (h + length) / 2 - L["padBottom"] * 0.55
+        elif self._edge == "top":
+            cx = (w + length) / 2 - L["padBottom"] * 0.55
+            cy = depth / 2
+        else:
+            cx = (w + length) / 2 - L["padBottom"] * 0.55
+            cy = h - depth / 2
+        return cx, cy, size
+
+    def _hit_theme_button(self, pos):
+        if self._progress < 0.35:
+            return False
+        cx, cy, size = self._theme_button_center()
+        radius = size * 0.62
+        return math.hypot(pos.x() - cx, pos.y() - cy) <= radius
+
+    def _on_theme_spin(self, value):
+        self._theme_spin = float(value)
+        self.update()
+
+    def _cycle_theme(self):
+        self._theme_mode = next_mode(self._theme_mode)
+        self._config["themeMode"] = self._theme_mode
+        self._theme_spin_anim.stop()
+        self._theme_spin_anim.setStartValue(self._theme_spin)
+        self._theme_spin_anim.setEndValue(self._theme_spin + 180.0)
+        self._theme_spin_anim.setDuration(280)
+        self._theme_spin_anim.setEasingCurve(QEasingCurve.InOutCubic)
+        self._theme_spin_anim.start()
+        if self._on_theme_change:
+            self._on_theme_change(self._theme_mode)
+        self.update()
+
+    def _paint_theme_button(self, painter, progress):
+        cx, cy, size = self._theme_button_center()
+        painter.save()
+        painter.setOpacity(progress)
+        painter.translate(cx, cy)
+        painter.rotate(self._theme_spin)
+        icon = QColor(Palette["textPrimary"])
+        radius = size * 0.34
+        if self._theme_mode == "auto":
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(icon)
+            painter.drawPie(
+                QRectF(-radius, -radius, radius * 2, radius * 2),
+                90 * 16,
+                180 * 16,
+            )
+            painter.setBrush(Qt.NoBrush)
+            painter.setPen(QPen(icon, max(1.5, size * 0.08), Qt.SolidLine, Qt.RoundCap))
+            painter.drawEllipse(QPointF(0, 0), radius, radius)
+        elif self._theme_mode == "light":
+            painter.setPen(QPen(icon, max(1.5, size * 0.08), Qt.SolidLine, Qt.RoundCap))
+            painter.setBrush(Qt.NoBrush)
+            painter.drawEllipse(QPointF(0, 0), radius, radius)
+            for angle in range(0, 360, 45):
+                rad = math.radians(angle)
+                painter.drawLine(
+                    QPointF(math.cos(rad) * radius * 1.15, math.sin(rad) * radius * 1.15),
+                    QPointF(math.cos(rad) * radius * 1.55, math.sin(rad) * radius * 1.55),
+                )
+        else:
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(icon)
+            painter.drawEllipse(QPointF(radius * 0.18, 0), radius * 0.92, radius * 0.92)
+            painter.setBrush(QColor(Appearance["color"]))
+            painter.drawEllipse(QPointF(-radius * 0.28, 0), radius * 0.98, radius * 0.98)
+        painter.restore()
 
     def _paint_arc_ring(self, painter, cx, cy, radius, sweep, fraction, track_stroke, progress_stroke):
         track = QPen(QColor(Palette["ringTrack"]))
@@ -672,6 +766,9 @@ class NotchOverlay(QWidget):
             self._menu(event.globalPos())
             return
         if event.button() == Qt.LeftButton:
+            if self._hit_theme_button(event.pos()):
+                self._cycle_theme()
+                return
             idx = self._hit_cell(event.pos())
             if idx >= 0:
                 provider = self._store.providers[idx]
