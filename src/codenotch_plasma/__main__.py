@@ -17,6 +17,13 @@ from .layout import apply_system_theme, configure_layout, set_appearance
 from .overlay import NotchOverlay
 from .provider_order import joining_connected, remember
 from .providers import discover_providers, tool_catalog
+from .screens import (
+    PRIMARY_SCREEN,
+    choice_is_active,
+    list_screen_choices,
+    normalize_screen_choice,
+    primary_screen_label,
+)
 from .store import UsageStore
 from .theme import mode_label, normalize_mode, resolve_dark
 
@@ -67,6 +74,7 @@ def load_config():
         "color": "#000000",
         "opacity": 1.0,
         "themeMode": "auto",
+        "screen": PRIMARY_SCREEN,
         "disabledProviders": [],
         "providerOrder": [],
     }
@@ -207,6 +215,14 @@ class CodenotchApp:
         save_config(self._config)
         self._apply_system_icons()
 
+    def _on_screen_changed(self, screen_id):
+        choice = normalize_screen_choice(screen_id)
+        if choice_is_active(self._config.get("screen", PRIMARY_SCREEN), choice):
+            return
+        self._config["screen"] = choice
+        save_config(self._config)
+        self._overlay.set_screen(choice)
+
     def _popup_menu(self, global_pos):
         self._build_menu(parent=self._overlay).exec_(global_pos)
 
@@ -251,6 +267,23 @@ class CodenotchApp:
             action.setChecked(current == mode)
             action.triggered.connect(lambda _checked=False, mode=mode: self._on_theme_mode_changed(mode))
             appearance.addAction(action)
+        display = menu.addMenu("Monitor")
+        display.setTitle("Monitor")
+        current_screen = normalize_screen_choice(self._config.get("screen", PRIMARY_SCREEN))
+        primary_action = QAction(primary_screen_label(), display)
+        primary_action.setCheckable(True)
+        primary_action.setChecked(current_screen == PRIMARY_SCREEN)
+        primary_action.triggered.connect(
+            lambda _checked=False: self._on_screen_changed(PRIMARY_SCREEN)
+        )
+        display.addAction(primary_action)
+        for entry in list_screen_choices():
+            action = QAction(entry["label"], display)
+            action.setCheckable(True)
+            action.setChecked(current_screen == entry["id"])
+            sid = entry["id"]
+            action.triggered.connect(lambda _checked=False, sid=sid: self._on_screen_changed(sid))
+            display.addAction(action)
         quit_act = QAction("Sair do Codenotch", menu)
         quit_act.triggered.connect(self._app.quit)
         menu.addAction(quit_act)

@@ -12,6 +12,7 @@
   "color": "#000000",
   "opacity": 1.0,
   "themeMode": "auto",
+  "screen": "primary",
   "disabledProviders": [],
   "providerOrder": []
 }

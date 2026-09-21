@@ -51,11 +51,21 @@ Abaixo da última IA há um botão de tema (anel menor, separado por um traço d
 
 O botão do notch alterna apenas entre **escuro ↔ claro** (sem ciclar o automático). Em modo automático, o ícone mostra sol ou lua conforme o tema aplicado no momento.
 
-No rodapé do notch, o botão **···** abre o mesmo menu da bandeja (Ferramentas, Aparência, Sair).
+No rodapé do notch, o botão **···** abre o mesmo menu da bandeja (Ferramentas, Aparência, Monitor, Sair). O clique direito no notch também abre esse menu.
 
 ### Alternar pela bandeja
 
 Clique direito no ícone da bandeja → **Aparência** → escolha **Automático**, **Escuro** ou **Claro**.
+
+## Monitor
+
+Com mais de um display conectado, escolha em qual tela o notch aparece:
+
+- **Clique direito no notch** ou **clique direito no ícone da bandeja** → **Monitor**
+- **Tela principal** — segue a tela principal definida nas configurações do KDE (padrão)
+- **Lista de monitores** — nomes do sistema + resolução (ex.: `HDMI-A-1 (1920×1080)`)
+
+A escolha é salva em `screen` no `config.json`. Se um monitor fixo for desconectado, o notch volta temporariamente para a tela principal até ele ser reconectado.
 
 | Tema escuro | Tema claro |
 |:---:|:---:|
@@ -66,7 +76,7 @@ Clique direito no ícone da bandeja → **Aparência** → escolha **Automático
 O jeito mais simples é pelo **pacote `.deb`**, publicado automaticamente em cada release do GitHub:
 
 1. Abra a [página de Releases](https://github.com/williamccampos/codenotch-plasma/releases)
-2. Baixe `codenotch-plasma_<versão>_amd64.deb` (ex.: `0.2.8`)
+2. Baixe `codenotch-plasma_<versão>_amd64.deb` (ex.: `0.3.0`)
 3. Instale:
 
 ```bash
@@ -152,6 +162,7 @@ O menu da bandeja (também acessível pelo **···** no rodapé do notch ou cli
 | **Sempre aberto** | Mantém o notch desdobrado |
 | **Ferramentas** | Liga/desliga cada IA no notch |
 | **Aparência** | Automático, Escuro ou Claro |
+| **Monitor** | Tela principal ou monitor específico |
 | **Sair do Codenotch** | Encerra o aplicativo |
 
 ### Ferramentas
@@ -214,6 +225,7 @@ Arquivo: `~/.config/codenotch-plasma/config.json` — veja [`config.example.json
 | `color` | `#000000` | Cor do corpo (sobrescrita pelo `themeMode`) |
 | `opacity` | `1.0` | Opacidade do corpo |
 | `themeMode` | `auto` | Tema do notch: `auto`, `dark` ou `light` |
+| `screen` | `primary` | Tela do notch: `primary` ou nome do monitor (ex.: `HDMI-A-1`) |
 | `disabledProviders` | `[]` | IDs de providers desabilitados |
 | `providerOrder` | `[]` | Ordem dos anéis no notch (novos entram no final) |
 

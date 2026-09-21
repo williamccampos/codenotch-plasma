@@ -18,6 +18,7 @@ from .layout import (
     Appearance, L, Palette, band, band_color, body_depth,
     is_dark_notch, ring_center, shape_length,
 )
+from .screens import normalize_screen_choice, resolve_screen
 from .theme import normalize_mode, toggle_fixed_mode
 from .theme_icons import draw_theme_icon
 from .shape import card_path, edge_notch_path, lerp
@@ -151,11 +152,15 @@ class NotchOverlay(QWidget):
             h = int(math.ceil(depth + L["cardWidth"] + L["tailLength"] + L["envelopeMargin"]))
         return max(w, 80), max(h, 80)
 
-    def _primary_screen(self):
-        return QApplication.primaryScreen()
+    def _target_screen(self):
+        return resolve_screen(self._config.get("screen", "primary"))
+
+    def set_screen(self, choice):
+        self._config["screen"] = normalize_screen_choice(choice)
+        self._apply_screen_change()
 
     def _screen_geo(self):
-        screen = self._primary_screen()
+        screen = self._target_screen()
         if screen:
             return screen.availableGeometry()
         return QApplication.desktop().availableGeometry()
@@ -795,7 +800,7 @@ class NotchOverlay(QWidget):
             if not self.isVisible():
                 self.show()
             return
-        screen = self._primary_screen()
+        screen = self._target_screen()
         if not screen:
             return
         if not self._screen_has_panel(screen):
