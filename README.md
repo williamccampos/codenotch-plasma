@@ -1,13 +1,52 @@
 # Codenotch Plasma
 
-Notch de uso de assistentes de código na borda da tela — port para **KDE Plasma no Linux**.
+<p align="center">
+  <img src="icons/preview/d-notch-clean-128.png" width="96" alt="Ícone Codenotch — notch minimalista" />
+</p>
+
+<p align="center">
+  <strong>Notch de uso de assistentes de código na borda da tela — port para KDE Plasma no Linux.</strong>
+</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/williamccampos/codenotch-plasma?label=.deb%20release)](https://github.com/williamccampos/codenotch-plasma/releases)
 
 Port do excelente [codenotch-gnome](https://github.com/RicardoEGG/codenotch-gnome) (por [Ricardo Egg](https://github.com/RicardoEGG)), que por sua vez é port do [codenotch](https://github.com/vinzdg/codenotch) original de [vinzdg](https://github.com/vinzdg).
 
 > **Disclaimer:** esta versão é **exclusiva para Linux com KDE Plasma** (testado em Plasma 5.27 / Ubuntu 24.04).  
 > Não é um plasmoid de painel — é um overlay frameless que replica o visual e a experiência do notch original na borda da tela. GNOME, Windows e macOS **não são suportados**.
+
+## Identidade visual
+
+O símbolo do Codenotch é um **notch minimalista** — uma pill com recorte lateral, inspirada no formato do notch físico na borda da tela. Entre quatro propostas iniciais, o design **D · Notch limpo** foi escolhido por ser legível na bandeja do sistema em tamanhos pequenos (16–22 px), sem parecer três anéis ou competir com os ícones das IAs dentro do próprio notch.
+
+| Contexto | Comportamento |
+|----------|---------------|
+| **Bandeja do sistema** | Renderizado em tempo real na cor do tema (claro ou escuro) |
+| **Menu de aplicativos** | Ícone fixo em cinza escuro, instalado no tema `hicolor` |
+
+Arquivos do ícone: [`icons/codenotch-plasma.svg`](icons/codenotch-plasma.svg) · propostas exploratórias em [`icons/preview/`](icons/preview/)
+
+## Instalar
+
+O jeito mais simples é pelo **pacote `.deb`**, publicado automaticamente em cada release do GitHub:
+
+1. Abra a [página de Releases](https://github.com/williamccampos/codenotch-plasma/releases)
+2. Baixe `codenotch-plasma_<versão>_amd64.deb` (ex.: `0.1.5`)
+3. Instale:
+
+```bash
+sudo apt install ./codenotch-plasma_<versão>_amd64.deb
+```
+
+O pacote instala o binário em `/usr/bin/codenotch-plasma`, registra **autostart** no login do KDE, instala o ícone no menu de aplicativos e resolve as dependências Python do sistema (`python3-pyqt5`, etc.).
+
+Se o ícone do menu não atualizar após um upgrade, limpe o cache do KDE e reinicie o launcher:
+
+```bash
+rm -f ~/.cache/icon-cache.kcache ~/.cache/ksycoca5_* ~/.cache/ksycoca6_*
+kbuildsycoca5 --noincremental
+```
 
 ### Limitações conhecidas
 
@@ -49,19 +88,7 @@ Um pill preto colado na borda da tela que desdobra ao passar o mouse, mostrando 
 
 Codenotch **nunca faz login**. Ele só lê credenciais que já existem na sua máquina.
 
-## Instalação rápida
-
-### Pacote `.deb` (recomendado)
-
-Baixe o `.deb` na [página de Releases](https://github.com/williamccampos/codenotch-plasma/releases) e instale:
-
-```bash
-sudo apt install ./codenotch-plasma_<versão>_amd64.deb
-```
-
-O pacote instala em `/usr/bin/codenotch-plasma`, registra autostart no login e puxa as dependências Python do sistema.
-
-### Instalação manual (desenvolvimento)
+## Instalação manual (desenvolvimento)
 
 ```bash
 git clone https://github.com/williamccampos/codenotch-plasma.git
