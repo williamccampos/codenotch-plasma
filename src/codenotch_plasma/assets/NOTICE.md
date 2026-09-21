@@ -6,11 +6,15 @@ matching the marks shipped in [vinzdg/codenotch](https://github.com/vinzdg/coden
 
 | File | Upstream | Provider |
 |------|----------|----------|
-| claude.svg / claude.png | icons/claude.svg | Claude |
-| grok.svg / grok.png | icons/grok.svg | Grok |
-| antigravity.svg / antigravity.png | icons/antigravity.svg | Antigravity |
+| claude.svg | icons/claude.svg | Claude |
+| grok.svg | icons/grok.svg | Grok |
+| antigravity.svg | icons/antigravity.svg | Antigravity |
+| openai.svg | icons/openai.svg | OpenAI / Codex |
 
-Cursor and Kiro PNGs are official product marks supplied by the maintainer.
+`scripts/render-glyphs.py` builds `{provider}-dark.png` (white glyph) and
+`{provider}-light.png` (black glyph) with transparent backgrounds.
+
+Cursor and Kiro source PNGs are official product marks supplied by the maintainer.
 
 **Trademarks**: these marks identify the products whose usage is displayed. They can be
 replaced with generated glyphs without touching code.

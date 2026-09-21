@@ -129,6 +129,7 @@ class CodenotchApp:
             self._store,
             self._config,
             on_theme_change=self._on_theme_mode_changed,
+            open_menu=self._popup_menu,
         )
         self._overlay.show()
         self._store.start()
@@ -209,6 +210,9 @@ class CodenotchApp:
     def _cycle_theme_mode(self):
         self._on_theme_mode_changed(next_mode(self._config.get("themeMode", "auto")))
 
+    def _popup_menu(self, global_pos):
+        self._build_menu(parent=self._overlay).exec_(global_pos)
+
     def _build_tray(self):
         tray = QSystemTrayIcon(self._app)
         tray.setIcon(load_app_icon(22, for_tray=True))
@@ -221,8 +225,14 @@ class CodenotchApp:
         if reason == QSystemTrayIcon.Context:
             self._tray.setContextMenu(self._build_menu())
 
-    def _build_menu(self):
-        menu = QMenu()
+    def _build_menu(self, parent=None):
+        menu = QMenu(parent)
+        always = QAction("Sempre aberto", menu)
+        always.setCheckable(True)
+        always.setChecked(self._overlay._always_open)
+        always.toggled.connect(self._overlay._set_always_open)
+        menu.addAction(always)
+        menu.addSeparator()
         tools = menu.addMenu("Ferramentas")
         tools.setTitle("Ferramentas")
         for tool in tool_catalog():
@@ -247,7 +257,6 @@ class CodenotchApp:
         theme_cycle = QAction(f"Tema atual: {mode_label(current)}", menu)
         theme_cycle.triggered.connect(self._cycle_theme_mode)
         menu.addAction(theme_cycle)
-        menu.addSeparator()
         quit_act = QAction("Sair do Codenotch", menu)
         quit_act.triggered.connect(self._app.quit)
         menu.addAction(quit_act)

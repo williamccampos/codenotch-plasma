@@ -3,6 +3,7 @@ set -euo pipefail
 
 echo "Removendo ícones antigos do usuário..."
 find "$HOME/.local/share/icons/hicolor" -name 'codenotch-plasma.*' -delete 2>/dev/null || true
+find "$HOME/.local/share/icons/hicolor" -name 'codenotch.*' -delete 2>/dev/null || true
 rm -f "$HOME/.cache/icon-cache.kcache"
 rm -f "$HOME"/.cache/ksycoca5_* "$HOME"/.cache/ksycoca6_* 2>/dev/null || true
 

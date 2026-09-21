@@ -19,6 +19,7 @@ rm -f "$HOME/.config/autostart/codenotch-plasma.desktop"
 
 echo "==> Limpando ícones do usuário..."
 find "$HOME/.local/share/icons" -name 'codenotch-plasma.*' -delete 2>/dev/null || true
+find "$HOME/.local/share/icons" -name 'codenotch.*' -delete 2>/dev/null || true
 
 echo "==> Limpando cache de ícones do KDE..."
 rm -f "$HOME/.cache/icon-cache.kcache"
@@ -37,4 +38,4 @@ sudo apt-get check
 
 echo
 echo "Expurgo concluído. Para reinstalar:"
-echo "  sudo apt install ~/Downloads/codenotch-plasma_0.1.8_amd64.deb"
+echo "  sudo apt install ~/Downloads/codenotch-plasma_0.2.1_amd64.deb"

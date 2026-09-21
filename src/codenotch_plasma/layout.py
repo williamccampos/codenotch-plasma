@@ -78,12 +78,14 @@ configure_layout()
 
 PURE_WHITE = "#FFFFFF"
 PURE_BLACK = "#000000"
-RING_TRACK = "#303030"
-BAR_TRACK = "#2D2D2D"
+RING_TRACK_DARK = "#303030"
+BAR_TRACK_DARK = "#2D2D2D"
+RING_TRACK_LIGHT = "#D6D6D6"
+BAR_TRACK_LIGHT = "#E0E0E0"
 
 Palette = {
-    "ringTrack": RING_TRACK,
-    "barTrack": BAR_TRACK,
+    "ringTrack": RING_TRACK_DARK,
+    "barTrack": BAR_TRACK_DARK,
     "ample": "#00FF88",
     "watch": "#F2FF00",
     "critical": "#FF3F00",
@@ -100,12 +102,16 @@ def apply_system_theme(dark=True, opacity=None):
     """Apply pure black/white structural colors to the notch body and text."""
     if dark:
         Palette.update({
+            "ringTrack": RING_TRACK_DARK,
+            "barTrack": BAR_TRACK_DARK,
             "textPrimary": PURE_WHITE,
             "textSecondary": PURE_WHITE,
         })
         set_appearance(PURE_BLACK, opacity if opacity is not None else Appearance["opacity"])
     else:
         Palette.update({
+            "ringTrack": RING_TRACK_LIGHT,
+            "barTrack": BAR_TRACK_LIGHT,
             "textPrimary": PURE_BLACK,
             "textSecondary": PURE_BLACK,
         })

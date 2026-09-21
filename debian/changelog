@@ -1,3 +1,17 @@
+codenotch-plasma (0.2.1-1) unstable; urgency=medium
+
+  * Theme-aware ring tracks (softer gray on light notch).
+  * Light/dark provider glyph variants with transparent backgrounds.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 02:05:00 -0300
+
+codenotch-plasma (0.2.0-1) unstable; urgency=medium
+
+  * Add menu button on the notch (same menu as the tray).
+  * Rename launcher icon to codenotch to break stale KDE menu cache.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 02:00:00 -0300
+
 codenotch-plasma (0.1.9-1) unstable; urgency=medium
 
   * Avoid apt install stalls by running kbuildsycoca in background during setup.

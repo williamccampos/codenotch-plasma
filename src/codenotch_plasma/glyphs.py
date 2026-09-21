@@ -1,4 +1,4 @@
-"""Provider marks: PNG assets where available, traced vectors as fallback."""
+"""Provider marks: theme-aware PNG assets with vector fallback."""
 
 import json
 from pathlib import Path
@@ -17,53 +17,33 @@ _EXTRA_OUTLINES = {
         [0.50, 0.46, 0.84, 0.28, 0.84, 0.68, 0.50, 0.86],
     ],
 }
-GLYPH_SCALE = {**_DATA["scale"], "cursor": 0.92, "kiro": 0.95}
+GLYPH_SCALE = {**_DATA["scale"], "cursor": 0.92, "kiro": 0.95, "openai": 0.94}
 OUTLINES = {**_DATA["outlines"], **_EXTRA_OUTLINES}
 _ASSET_CACHE = {}
-_ADAPTED_CACHE = {}
 
 
-def _load_asset(name):
-    if name in _ASSET_CACHE:
-        return _ASSET_CACHE[name]
-    path = _ASSETS / f"{name}.png"
-    if not path.exists():
-        _ASSET_CACHE[name] = None
-        return None
-    pix = QPixmap(str(path))
-    _ASSET_CACHE[name] = pix if not pix.isNull() else None
-    return _ASSET_CACHE[name]
+def _variant_suffix(dark_notch: bool) -> str:
+    return "dark" if dark_notch else "light"
 
 
-def _average_luminance(image: QImage) -> float:
-    total = 0.0
-    count = 0
-    for y in range(image.height()):
-        for x in range(image.width()):
-            alpha = QColor(image.pixel(x, y)).alpha()
-            if alpha < 16:
-                continue
-            color = QColor(image.pixel(x, y))
-            total += 0.2126 * color.red() + 0.7152 * color.green() + 0.0722 * color.blue()
-            count += 1
-    return total / count if count else 128.0
+def _load_asset(name, dark_notch):
+    variant = _variant_suffix(dark_notch)
+    cache_key = (name, variant)
+    if cache_key in _ASSET_CACHE:
+        return _ASSET_CACHE[cache_key]
 
+    for candidate in (f"{name}-{variant}.png", f"{name}.png"):
+        path = _ASSETS / candidate
+        if not path.exists():
+            continue
+        pix = QPixmap(str(path))
+        if pix.isNull():
+            continue
+        _ASSET_CACHE[cache_key] = pix
+        return pix
 
-def _adapt_pixmap(name, pixmap: QPixmap, dark_notch: bool) -> QPixmap:
-    cache_key = (name, dark_notch)
-    if cache_key in _ADAPTED_CACHE:
-        return _ADAPTED_CACHE[cache_key]
-
-    image = pixmap.toImage().convertToFormat(QImage.Format_ARGB32)
-    luminance = _average_luminance(image)
-    if dark_notch and luminance < 90:
-        image.invertPixels(QImage.InvertRgb)
-    elif not dark_notch and luminance > 175:
-        image.invertPixels(QImage.InvertRgb)
-
-    adapted = QPixmap.fromImage(image)
-    _ADAPTED_CACHE[cache_key] = adapted
-    return adapted
+    _ASSET_CACHE[cache_key] = None
+    return None
 
 
 def glyph_path(name, cx, cy, size):
@@ -89,7 +69,7 @@ def glyph_path(name, cx, cy, size):
 
 
 def clear_adapted_cache():
-    _ADAPTED_CACHE.clear()
+    _ASSET_CACHE.clear()
 
 
 def draw_glyph(painter, name, cx, cy, size, alpha=1.0, badge=None, dark_notch=None):
@@ -98,12 +78,10 @@ def draw_glyph(painter, name, cx, cy, size, alpha=1.0, badge=None, dark_notch=No
         dark_notch = is_dark_notch()
     base = QColor(Palette["textPrimary"])
     color = QColor(base.red(), base.green(), base.blue(), int(255 * max(0.0, min(1.0, alpha))))
-    pix = _load_asset(name)
+    pix = _load_asset(name, dark_notch)
     if pix is not None:
         target = int(size * GLYPH_SCALE.get(name, 1))
-        scaled = _adapt_pixmap(name, pix, dark_notch).scaled(
-            target, target, Qt.KeepAspectRatio, Qt.SmoothTransformation,
-        )
+        scaled = pix.scaled(target, target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         x = int(cx - scaled.width() / 2)
         y = int(cy - scaled.height() / 2)
         painter.setOpacity(alpha)

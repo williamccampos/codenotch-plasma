@@ -10,6 +10,7 @@ from PyQt5.QtGui import QIcon, QImage, QPixmap
 from .theme import normalize_mode, resolve_dark
 
 _ICON_NAME = "codenotch-plasma"
+_LAUNCHER_ICON_NAME = "codenotch"
 _SVG_FILL = "#FFFFFF"
 _ICON_FILL_DARK = "#FFFFFF"
 _ICON_FILL_LIGHT = "#000000"
@@ -136,19 +137,21 @@ def sync_system_icons(force=False):
         pixmap = _pixmap_for_fill(size, fill)
         if pixmap is None or pixmap.isNull():
             continue
-        out = _USER_ICON_ROOT / f"{size}x{size}" / "apps" / f"{_ICON_NAME}.png"
-        out.parent.mkdir(parents=True, exist_ok=True)
-        pixmap.save(str(out), "PNG")
+        out_dir = _USER_ICON_ROOT / f"{size}x{size}" / "apps"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        for name in (_ICON_NAME, _LAUNCHER_ICON_NAME):
+            pixmap.save(str(out_dir / f"{name}.png"), "PNG")
         wrote = True
 
     svg = _master_svg()
     if svg is not None:
-        scalable = _USER_ICON_ROOT / "scalable" / "apps" / f"{_ICON_NAME}.svg"
-        scalable.parent.mkdir(parents=True, exist_ok=True)
-        scalable.write_text(
-            svg.read_text(encoding="utf-8").replace(f'fill="{_SVG_FILL}"', f'fill="{fill}"'),
-            encoding="utf-8",
+        svg_text = svg.read_text(encoding="utf-8").replace(
+            f'fill="{_SVG_FILL}"', f'fill="{fill}"',
         )
+        scalable_dir = _USER_ICON_ROOT / "scalable" / "apps"
+        scalable_dir.mkdir(parents=True, exist_ok=True)
+        for name in (_ICON_NAME, _LAUNCHER_ICON_NAME):
+            (scalable_dir / f"{name}.svg").write_text(svg_text, encoding="utf-8")
         wrote = True
 
     if wrote:

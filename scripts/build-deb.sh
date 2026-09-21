@@ -21,6 +21,10 @@ install -d "${PKG}/usr/share/codenotch-plasma"
 install -d "${PKG}/usr/share/applications"
 install -d "${PKG}/etc/xdg/autostart"
 
+if command -v python3 >/dev/null && python3 -c "import cairosvg" 2>/dev/null; then
+  python3 "${ROOT}/scripts/render-glyphs.py"
+fi
+
 install -m 0755 "${ROOT}/bin/codenotch-plasma" "${PKG}/usr/bin/"
 cp -a "${ROOT}/src" "${PKG}/usr/share/codenotch-plasma/"
 install -m 0644 "${ROOT}/LICENSE" "${ROOT}/README.md" "${ROOT}/config.example.json" \
@@ -32,6 +36,9 @@ install -m 0644 "${ROOT}/debian/codenotch-plasma.desktop" \
 if [ -d "${ROOT}/icons/hicolor" ]; then
   install -d "${PKG}/usr/share/icons"
   cp -a "${ROOT}/icons/hicolor" "${PKG}/usr/share/icons/"
+  while IFS= read -r icon; do
+    cp "${icon}" "$(dirname "${icon}")/codenotch.${icon##*.}"
+  done < <(find "${PKG}/usr/share/icons/hicolor" -name 'codenotch-plasma.*')
 fi
 install -d "${PKG}/usr/share/codenotch-plasma/icons"
 install -m 0644 "${ROOT}/icons/codenotch-plasma.svg" \

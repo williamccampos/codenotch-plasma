@@ -37,11 +37,12 @@ def _qcolor(hex_color, alpha=1.0):
 
 
 class NotchOverlay(QWidget):
-    def __init__(self, store, config, parent=None, on_theme_change=None):
+    def __init__(self, store, config, parent=None, on_theme_change=None, open_menu=None):
         super().__init__(parent)
         self._store = store
         self._config = config
         self._on_theme_change = on_theme_change
+        self._open_menu = open_menu
         self._theme_mode = normalize_mode(config.get("themeMode", "auto"))
         self._theme_spin = 0.0
         self._edge = config.get("edge", "right")
@@ -287,36 +288,46 @@ class NotchOverlay(QWidget):
         if self._hover_index >= 0 and t > 0.7:
             self._paint_card(painter, self._hover_index)
         if t > 0.35:
-            self._paint_theme_button(painter, t)
+            self._paint_control_buttons(painter, t)
 
-    def _theme_button_size(self):
+    def _control_button_size(self):
         return L["glyphSize"] * L["themeButtonScale"]
 
-    def _theme_button_center(self):
+    def _control_button_centers(self):
         w, h = self.width(), self.height()
         length = self._current_length()
         depth = self._current_depth()
-        size = self._theme_button_size()
+        size = self._control_button_size()
+        gap = size * 1.15
         if self._edge == "right":
-            cx = w - depth / 2
-            cy = (h + length) / 2 - L["padBottom"] * 0.55
+            mid_x = w - depth / 2
+            mid_y = (h + length) / 2 - L["padBottom"] * 0.55
         elif self._edge == "left":
-            cx = depth / 2
-            cy = (h + length) / 2 - L["padBottom"] * 0.55
+            mid_x = depth / 2
+            mid_y = (h + length) / 2 - L["padBottom"] * 0.55
         elif self._edge == "top":
-            cx = (w + length) / 2 - L["padBottom"] * 0.55
-            cy = depth / 2
+            mid_x = (w + length) / 2 - L["padBottom"] * 0.55
+            mid_y = depth / 2
         else:
-            cx = (w + length) / 2 - L["padBottom"] * 0.55
-            cy = h - depth / 2
-        return cx, cy, size
+            mid_x = (w + length) / 2 - L["padBottom"] * 0.55
+            mid_y = h - depth / 2
+        return (mid_x - gap / 2, mid_y), (mid_x + gap / 2, mid_y), size
 
-    def _hit_theme_button(self, pos):
+    def _hit_control_button(self, pos):
         if self._progress < 0.35:
-            return False
-        cx, cy, size = self._theme_button_center()
+            return None
+        theme_xy, menu_xy, size = self._control_button_centers()
         radius = size * 0.62
-        return math.hypot(pos.x() - cx, pos.y() - cy) <= radius
+        if math.hypot(pos.x() - theme_xy[0], pos.y() - theme_xy[1]) <= radius:
+            return "theme"
+        if math.hypot(pos.x() - menu_xy[0], pos.y() - menu_xy[1]) <= radius:
+            return "menu"
+        return None
+
+    def _paint_control_buttons(self, painter, progress):
+        theme_xy, menu_xy, size = self._control_button_centers()
+        self._paint_theme_button(painter, progress, theme_xy[0], theme_xy[1], size)
+        self._paint_menu_button(painter, progress, menu_xy[0], menu_xy[1], size)
 
     def _on_theme_spin(self, value):
         self._theme_spin = float(value)
@@ -335,8 +346,19 @@ class NotchOverlay(QWidget):
             self._on_theme_change(self._theme_mode)
         self.update()
 
-    def _paint_theme_button(self, painter, progress):
-        cx, cy, size = self._theme_button_center()
+    def _paint_menu_button(self, painter, progress, cx, cy, size):
+        painter.save()
+        painter.setOpacity(progress)
+        icon = QColor(Palette["textPrimary"])
+        dot = max(2.0, size * 0.07)
+        gap = dot * 2.2
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(icon)
+        for offset in (-gap, 0, gap):
+            painter.drawEllipse(QPointF(cx + offset, cy), dot, dot)
+        painter.restore()
+
+    def _paint_theme_button(self, painter, progress, cx, cy, size):
         painter.save()
         painter.setOpacity(progress)
         painter.translate(cx, cy)
@@ -763,11 +785,15 @@ class NotchOverlay(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.RightButton:
-            self._menu(event.globalPos())
+            self._show_app_menu(event.globalPos())
             return
         if event.button() == Qt.LeftButton:
-            if self._hit_theme_button(event.pos()):
+            hit = self._hit_control_button(event.pos())
+            if hit == "theme":
                 self._cycle_theme()
+                return
+            if hit == "menu":
+                self._show_app_menu(event.globalPos())
                 return
             idx = self._hit_cell(event.pos())
             if idx >= 0:
@@ -777,7 +803,10 @@ class NotchOverlay(QWidget):
                 if provider.id == "cursor-corp":
                     QTimer.singleShot(5000, lambda: self._store.refresh(provider.id))
 
-    def _menu(self, global_pos):
+    def _show_app_menu(self, global_pos):
+        if self._open_menu:
+            self._open_menu(global_pos)
+            return
         menu = QMenu(self)
         always = QAction("Sempre aberto", menu)
         always.setCheckable(True)
