@@ -3,6 +3,10 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+VENDOR = "/usr/share/codenotch-plasma/vendor"
+if os.path.isdir(VENDOR):
+    sys.path.insert(0, VENDOR)
+
 CANDIDATES = [
     os.path.join(os.path.dirname(HERE), "src"),
     "/usr/share/codenotch-plasma/src",

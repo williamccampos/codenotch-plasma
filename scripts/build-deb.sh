@@ -8,6 +8,7 @@ ARCH="${ARCH:-amd64}"
 STAGING="$(mktemp -d)"
 PKG="${STAGING}/codenotch-plasma_${VERSION}_${ARCH}"
 DEB_VERSION="${VERSION}-1"
+VENDOR="${PKG}/usr/share/codenotch-plasma/vendor"
 
 cleanup() {
   rm -rf "${STAGING}"
@@ -29,13 +30,20 @@ install -m 0644 "${ROOT}/debian/codenotch-plasma.desktop" \
 install -m 0644 "${ROOT}/debian/codenotch-plasma.desktop" \
   "${PKG}/etc/xdg/autostart/codenotch-plasma.desktop"
 
+# Bundle browser-cookie3 (not packaged on Ubuntu 24.04 / many Debian derivatives).
+python3 -m pip install --disable-pip-version-check --no-cache-dir \
+  --target "${VENDOR}" "browser-cookie3>=0.19.0" \
+  --break-system-packages 2>/dev/null \
+  || python3 -m pip install --disable-pip-version-check --no-cache-dir \
+  --target "${VENDOR}" "browser-cookie3>=0.19.0"
+
 cat > "${PKG}/DEBIAN/control" <<EOF
 Package: codenotch-plasma
 Version: ${DEB_VERSION}
 Section: utils
 Priority: optional
 Architecture: ${ARCH}
-Depends: python3 (>= 3.10), python3-pyqt5, python3-dbus, python3-browser-cookie3, python3-pycryptodome
+Depends: python3 (>= 3.10), python3-pyqt5, python3-dbus, python3-pycryptodome
 Recommends: libsecret-tools
 Maintainer: William Campos <williamcampos29@gmail.com>
 Homepage: https://github.com/williamccampos/codenotch-plasma

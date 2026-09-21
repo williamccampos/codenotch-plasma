@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# uninstall.sh — remove manual install (~/.local); no sudo needed.
 set -euo pipefail
 
 BIN="${HOME}/.local/bin/codenotch-plasma"

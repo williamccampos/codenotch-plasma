@@ -1,3 +1,10 @@
+codenotch-plasma (0.1.1-1) unstable; urgency=medium
+
+  * Bundle browser-cookie3 in the package (not available via apt on Ubuntu 24.04).
+  * Depends only on packages present in Debian/Ubuntu repositories.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 01:05:00 -0300
+
 codenotch-plasma (0.1.0-1) unstable; urgency=medium
 
   * Initial Debian package and GitHub release workflow.
