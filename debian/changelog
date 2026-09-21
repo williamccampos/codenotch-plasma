@@ -1,3 +1,10 @@
+codenotch-plasma (0.1.9-1) unstable; urgency=medium
+
+  * Avoid apt install stalls by running kbuildsycoca in background during setup.
+  * Add purge script and safer postinst/postrm hooks.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 01:55:00 -0300
+
 codenotch-plasma (0.1.8-1) unstable; urgency=medium
 
   * Fix menu icon sync without cairosvg by inverting packaged PNGs.

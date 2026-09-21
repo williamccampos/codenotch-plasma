@@ -1,0 +1,12 @@
+#!/bin/sh
+
+case "$1" in
+    purge|remove)
+        pkill -f 'python3.*codenotch-plasma' >/dev/null 2>&1 || true
+        pkill -f 'codenotch_plasma' >/dev/null 2>&1 || true
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0
