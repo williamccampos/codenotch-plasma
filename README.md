@@ -49,6 +49,8 @@ O script instala em `~/.local/bin/codenotch-plasma`, registra autostart e inicia
 
 **Uso:** passe o mouse na borda → notch desdobra. Clique esquerdo abre o dashboard do provider. Clique direito: **Sempre aberto** ou **Sair**.
 
+No ícone da bandeja do sistema: **Ferramentas** lista todas as IAs (instaladas ou não) com interruptor para mostrar ou esconder cada uma no notch — igual às preferências do codenotch-gnome.
+
 ## Providers suportados
 
 | Provider | Onde lê a credencial |
@@ -57,6 +59,7 @@ O script instala em `~/.local/bin/codenotch-plasma`, registra autostart e inicia
 | Codex | `~/.codex/auth.json` |
 | Cursor Personal | sessão do Cursor IDE / agent |
 | Cursor Corp | login no browser (Edge) + [`browser-cookie3`](requirements.txt) |
+| Antigravity (`agy`) | `~/.gemini/antigravity-cli` ou `~/.gemini/antigravity` |
 | Grok | `~/.grok/auth.json` |
 | Kiro | `~/.local/share/kiro-cli/data.sqlite3` |
 

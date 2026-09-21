@@ -10,7 +10,7 @@ from .archive import load_archive, save_archive
 from .copytext import percent_text
 from .httputil import ProviderError
 from .layout import band
-from .sessions import read_claude_sessions, summarize
+from .sessions import antigravity_sessions, read_claude_sessions, summarize
 
 
 IDLE_REFRESH = 5 * 60 * 1000
@@ -57,6 +57,37 @@ class UsageStore(QObject):
         self._session_timer.stop()
         self._reset_timer.stop()
         self._pool.shutdown(wait=False)
+
+    def reload_providers(self, providers):
+        self.providers = providers
+        next_states = {}
+        for provider in providers:
+            state = self._states.get(provider.id)
+            if state:
+                next_states[provider.id] = state
+            else:
+                next_states[provider.id] = {
+                    "snapshot": None,
+                    "status": "error",
+                    "error": None,
+                    "fetching": False,
+                    "attemptedAt": 0,
+                }
+                entry = self._archive.get(provider.id)
+                if entry and entry.get("snapshot"):
+                    snapshot = entry["snapshot"]
+                    if provider.id == "codex":
+                        snapshot = _patch_codex_snapshot(snapshot)
+                    elif provider.id == "cursor-personal":
+                        snapshot = _patch_cursor_personal_snapshot(snapshot)
+                    next_states[provider.id]["snapshot"] = snapshot
+                    next_states[provider.id]["attemptedAt"] = snapshot.get("fetchedAt") or 0
+                    self.state_of(provider.id)
+        self._states = next_states
+        self._refresh_all("initial")
+        self._schedule_reset_refreshes()
+        for provider in providers:
+            self.changed.emit(provider.id)
 
     def state_of(self, provider_id, now=None):
         now = now or _now_ms()
@@ -211,6 +242,8 @@ class UsageStore(QObject):
                 continue
             if provider.id == "claude":
                 found = read_claude_sessions(provider.sessions_dir())
+            elif provider.id == "antigravity":
+                found = antigravity_sessions(provider.brains_dirs())
             else:
                 found = self._sessions.get(provider.id) or []
             if found != self._sessions.get(provider.id):

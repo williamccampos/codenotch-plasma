@@ -3,11 +3,12 @@ import sys
 from pathlib import Path
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
+from PyQt5.QtGui import QColor, QIcon, QPainter, QPixmap
+from PyQt5.QtWidgets import QAction, QApplication, QMenu, QSystemTrayIcon
 
 from .layout import configure_layout, set_appearance
 from .overlay import NotchOverlay
-from .providers import discover_providers
+from .providers import discover_providers, tool_catalog
 from .store import UsageStore
 
 
@@ -80,6 +81,106 @@ def apply_config(config):
     set_appearance(config.get("color", "#000000"), float(config.get("opacity", 1)))
 
 
+def demo_providers():
+    return [
+        DemoProvider("demo-claude", "Claude", "claude", 0.31, "Current session",
+                     "https://claude.ai/settings/usage"),
+        DemoProvider("demo-codex", "Codex", "openai", 0.22, "5h limit",
+                     "https://chatgpt.com/#settings/Account"),
+        DemoProvider("demo-grok", "Grok", "grok", 0.0, "Requests today · no limit published",
+                     "https://grok.com/?_s=usage"),
+    ]
+
+
+def active_providers(config):
+    providers = discover_providers(disabled=config.get("disabledProviders"))
+    if providers:
+        return providers
+    if not any(tool["installed"] for tool in tool_catalog()):
+        return demo_providers()
+    return []
+
+
+class CodenotchApp:
+    def __init__(self, app):
+        self._app = app
+        self._config = load_config()
+        apply_config(self._config)
+        self._store = UsageStore(
+            active_providers(self._config),
+            refresh_interval=int(self._config.get("refreshInterval", 60)),
+        )
+        self._overlay = NotchOverlay(self._store, self._config)
+        self._overlay.show()
+        self._store.start()
+        if not self._config.get("alwaysOpen"):
+            self._overlay._expand()
+            QTimer.singleShot(4000, self._overlay._maybe_fold)
+        self._tray = self._build_tray()
+        self._tray.show()
+        self._app.aboutToQuit.connect(self._shutdown)
+
+    def _shutdown(self):
+        save_config(self._overlay._config)
+        self._store.shutdown()
+
+    def _provider_enabled(self, provider_id):
+        return provider_id not in set(self._config.get("disabledProviders") or [])
+
+    def _set_provider_enabled(self, provider_id, enabled):
+        disabled = list(self._config.get("disabledProviders") or [])
+        has = provider_id in disabled
+        if enabled and has:
+            disabled.remove(provider_id)
+        elif not enabled and not has:
+            disabled.append(provider_id)
+        self._config["disabledProviders"] = disabled
+        save_config(self._config)
+        providers = active_providers(self._config)
+        self._store.reload_providers(providers)
+        self._overlay.reload_providers()
+
+    def _build_tray(self):
+        tray = QSystemTrayIcon(self._app)
+        icon_pix = QPixmap(32, 32)
+        icon_pix.fill(QColor(0, 0, 0, 0))
+        painter = QPainter(icon_pix)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setBrush(QColor("#000000"))
+        painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(4, 2, 24, 28, 8, 8)
+        painter.end()
+        tray.setIcon(QIcon(icon_pix))
+        tray.setToolTip("Codenotch")
+        tray.setContextMenu(self._build_menu())
+        tray.activated.connect(self._on_tray_activated)
+        return tray
+
+    def _on_tray_activated(self, reason):
+        if reason == QSystemTrayIcon.Context:
+            self._tray.setContextMenu(self._build_menu())
+
+    def _build_menu(self):
+        menu = QMenu()
+        tools = menu.addMenu("Ferramentas")
+        tools.setTitle("Ferramentas")
+        for tool in tool_catalog():
+            subtitle = "Instalado" if tool["installed"] else "Não encontrado nesta máquina"
+            action = QAction(f"{tool['title']} — {subtitle}", tools)
+            action.setCheckable(True)
+            action.blockSignals(True)
+            action.setChecked(self._provider_enabled(tool["id"]))
+            action.blockSignals(False)
+            pid = tool["id"]
+            action.toggled.connect(lambda checked, pid=pid: self._set_provider_enabled(pid, checked))
+            tools.addAction(action)
+        menu.addSeparator()
+        quit_act = QAction("Sair do Codenotch", menu)
+        quit_act.triggered.connect(self._app.quit)
+        menu.addAction(quit_act)
+        return menu
+
+
 def main(argv=None):
     argv = argv if argv is not None else sys.argv
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
@@ -87,48 +188,7 @@ def main(argv=None):
     app = QApplication(argv)
     app.setApplicationName("Codenotch")
     app.setQuitOnLastWindowClosed(False)
-
-    config = load_config()
-    apply_config(config)
-    providers = discover_providers(disabled=config.get("disabledProviders"))
-    if not providers:
-        providers = [
-            DemoProvider("demo-claude", "Claude", "claude", 0.31, "Current session",
-                         "https://claude.ai/settings/usage"),
-            DemoProvider("demo-codex", "Codex", "openai", 0.22, "5h limit",
-                         "https://chatgpt.com/#settings/Account"),
-            DemoProvider("demo-grok", "Grok", "grok", 0.0, "Requests today · no limit published",
-                         "https://grok.com/?_s=usage"),
-        ]
-    store = UsageStore(providers, refresh_interval=int(config.get("refreshInterval", 60)))
-    overlay = NotchOverlay(store, config)
-    overlay.show()
-    store.start()
-    # First seconds unfolded so the notch is findable on the Plasma edge.
-    if not config.get("alwaysOpen"):
-        overlay._expand()
-        QTimer.singleShot(4000, overlay._maybe_fold)
-
-    tray = QSystemTrayIcon(app)
-    from PyQt5.QtGui import QPixmap, QIcon, QColor, QPainter
-    icon_pix = QPixmap(32, 32)
-    icon_pix.fill(QColor(0, 0, 0, 0))
-    painter = QPainter(icon_pix)
-    painter.setRenderHint(QPainter.Antialiasing)
-    painter.setBrush(QColor("#000000"))
-    painter.setPen(Qt.NoPen)
-    painter.drawRoundedRect(4, 2, 24, 28, 8, 8)
-    painter.end()
-    tray.setIcon(QIcon(icon_pix))
-    tray.setToolTip("Codenotch")
-    menu = QMenu()
-    quit_act = QAction("Sair do Codenotch", menu)
-    quit_act.triggered.connect(app.quit)
-    menu.addAction(quit_act)
-    tray.setContextMenu(menu)
-    tray.show()
-
-    app.aboutToQuit.connect(lambda: (save_config(overlay._config), store.shutdown()))
+    CodenotchApp(app)
     return app.exec_()
 
 

@@ -88,6 +88,14 @@ class NotchOverlay(QWidget):
         self._relayout()
         self._update_mask()
 
+    def reload_providers(self):
+        self._sweeps = {p.id: self._sweeps.get(p.id, 0.0) for p in self._store.providers}
+        self._inner_sweeps = {p.id: self._inner_sweeps.get(p.id, 0.0) for p in self._store.providers}
+        self._hover_index = -1
+        self._relayout()
+        self._update_mask()
+        self.update()
+
     def get_progress(self):
         return self._progress
 
@@ -100,7 +108,7 @@ class NotchOverlay(QWidget):
     progress = pyqtProperty(float, get_progress, set_progress)
 
     def _cell_count(self):
-        return max(1, len(self._store.providers))
+        return len(self._store.providers)
 
     def _vertical(self):
         return self._edge in ("left", "right")

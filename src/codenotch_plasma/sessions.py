@@ -34,6 +34,90 @@ def read_claude_sessions(directory):
     return sessions
 
 
+ANTIGRAVITY_BUSY_WINDOW = 45 * 1000
+
+
+def read_antigravity_activity(roots, now=None):
+    now_ms = int((now or datetime.now()).timestamp() * 1000)
+    day_start, day_end = _local_day(now_ms)
+    requests_today = 0
+    last_request = None
+    for root in roots:
+        base = Path(root)
+        if not base.is_dir():
+            continue
+        for child in base.iterdir():
+            if not child.is_dir():
+                continue
+            path = child / ".system_generated" / "logs" / "transcript.jsonl"
+            try:
+                modified = int(path.stat().st_mtime * 1000)
+            except OSError:
+                continue
+            requests_today += _steps_today(path, modified, day_start, day_end)
+            if not last_request or modified > last_request["at"]:
+                last_request = {"id": child.name, "at": modified}
+    return {"requestsToday": requests_today, "lastRequest": last_request}
+
+
+def antigravity_sessions(roots, now=None):
+    now_ms = int((now or datetime.now()).timestamp() * 1000)
+    activity = read_antigravity_activity(roots, now_ms)
+    last = activity.get("lastRequest")
+    if not last or now_ms - last["at"] >= ANTIGRAVITY_BUSY_WINDOW:
+        return []
+    return [{
+        "id": f"antigravity.{last['id']}",
+        "name": "Antigravity",
+        "detail": "Working",
+        "state": "busy",
+        "waitingFor": None,
+        "since": last["at"],
+    }]
+
+
+def _local_day(now_ms):
+    start = datetime.fromtimestamp(now_ms / 1000).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_start = int(start.timestamp() * 1000)
+    day_end = day_start + 24 * 60 * 60 * 1000
+    return day_start, day_end
+
+
+def _steps_today(path, modified_ms, day_start, day_end):
+    if modified_ms < day_start:
+        return 0
+    count = 0
+    try:
+        with path.open("r", encoding="utf-8", errors="ignore") as fh:
+            for line in fh:
+                if not line.strip():
+                    continue
+                try:
+                    ev = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                ts = ev.get("timestamp") or ev.get("time") or ev.get("createdAt")
+                millis = _event_ms(ts)
+                if millis is None:
+                    continue
+                if day_start <= millis < day_end:
+                    count += 1
+    except OSError:
+        return 0
+    return count
+
+
+def _event_ms(ts):
+    if isinstance(ts, (int, float)):
+        return int(ts if ts > 1e12 else ts * 1000)
+    if isinstance(ts, str):
+        try:
+            return int(datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp() * 1000)
+        except ValueError:
+            return None
+    return None
+
+
 def grok_requests_today(root):
     day_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
     total = 0
