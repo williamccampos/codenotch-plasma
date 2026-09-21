@@ -7,7 +7,7 @@ from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QImage, QPixmap
 
-from .theme import normalize_mode, resolve_dark
+from .theme import normalize_mode
 
 _ICON_NAME = "codenotch-plasma"
 _LAUNCHER_ICON_NAME = "codenotch"
