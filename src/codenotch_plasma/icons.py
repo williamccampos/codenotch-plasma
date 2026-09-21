@@ -2,11 +2,10 @@
 
 from pathlib import Path
 
-from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QImage, QPixmap
 
 _ICON_NAME = "codenotch-plasma"
-_RING_COLORS = ("#00FF88", "#F2FF00", "#00D4FF")
 
 
 def _search_paths():
@@ -17,55 +16,48 @@ def _search_paths():
         Path.home() / ".local/share/codenotch-plasma/icons",
     )
     for root in roots:
-        yield root / f"{_ICON_NAME}.png"
         yield root / f"{_ICON_NAME}.svg"
+        yield root / f"{_ICON_NAME}.png"
     for size in (256, 128, 64, 48, 32, 24, 22, 16):
         yield Path(f"/usr/share/icons/hicolor/{size}x{size}/apps/{_ICON_NAME}.png")
 
 
+def _master_svg():
+    for path in _search_paths():
+        if path.suffix == ".svg" and path.exists():
+            return path
+    return None
+
+
 def render_app_icon(size=32):
-    """Draw the notch pill with three usage rings."""
-    pix = QPixmap(size, size)
-    pix.fill(Qt.transparent)
-    painter = QPainter(pix)
-    painter.setRenderHint(QPainter.Antialiasing)
+    svg = _master_svg()
+    if svg:
+        try:
+            import cairosvg
 
-    margin = size * 0.12
-    height = size - 2 * margin
-    width = max(size * 0.34, 6)
-    x = (size - width) / 2
-    y = margin
+            data = cairosvg.svg2png(
+                url=str(svg),
+                output_width=size,
+                output_height=size,
+                background_color="transparent",
+            )
+            image = QImage.fromData(data)
+            if not image.isNull():
+                return QPixmap.fromImage(image)
+        except Exception:
+            pass
 
-    if size >= 48:
-        painter.setBrush(QColor("#2A2A2A"))
-        painter.setPen(Qt.NoPen)
-        bg = size * 0.08
-        painter.drawRoundedRect(
-            QRectF(bg, bg, size - 2 * bg, size - 2 * bg),
-            size * 0.22,
-            size * 0.22,
-        )
+    bundled = Path(__file__).resolve().parent / "assets" / f"{_ICON_NAME}.png"
+    if bundled.exists():
+        pixmap = QPixmap(str(bundled))
+        if not pixmap.isNull():
+            return pixmap.scaled(
+                size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation,
+            )
 
-    painter.setBrush(QColor("#101010"))
-    painter.setPen(QPen(QColor("#3A3A3A"), max(1, size / 32)))
-    painter.drawRoundedRect(QRectF(x, y, width, height), width / 2, width / 2)
-
-    ring_size = min(width * 1.35, height / 3.8)
-    stroke = max(1.5, size / 14)
-    centers = (
-        y + height * 0.24,
-        y + height * 0.50,
-        y + height * 0.76,
-    )
-    for index, cy in enumerate(centers):
-        painter.setBrush(Qt.NoBrush)
-        painter.setPen(QPen(QColor(_RING_COLORS[index]), stroke, Qt.SolidLine, Qt.RoundCap))
-        inset = (width - ring_size) / 2
-        rect = QRectF(x + inset, cy - ring_size / 2, ring_size, ring_size)
-        painter.drawArc(rect, 35 * 16, 290 * 16)
-
-    painter.end()
-    return pix
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.transparent)
+    return pixmap
 
 
 def load_app_icon(size=32):
@@ -76,7 +68,7 @@ def load_app_icon(size=32):
             return QIcon(pixmap)
 
     for path in _search_paths():
-        if path.exists():
+        if path.suffix == ".png" and path.exists():
             icon = QIcon(str(path))
             if not icon.isNull():
                 return icon

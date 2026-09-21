@@ -1,32 +1,50 @@
 #!/usr/bin/env python3
-"""Render hicolor PNG icons from the vector renderer."""
+"""Render hicolor PNG icons from the master SVG."""
 
+import io
+import shutil
 import sys
 from pathlib import Path
 
+import cairosvg
+
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+SVG = ROOT / "icons" / "codenotch-plasma.svg"
+ASSET_PNG = ROOT / "src" / "codenotch_plasma" / "assets" / "codenotch-plasma.png"
+ASSET_SVG = ROOT / "src" / "codenotch_plasma" / "assets" / "codenotch-plasma.svg"
 
-from PyQt5.QtWidgets import QApplication
 
-from codenotch_plasma.icons import render_app_icon
+def svg_to_png(size: int) -> bytes:
+    return cairosvg.svg2png(
+        url=str(SVG),
+        output_width=size,
+        output_height=size,
+        background_color="transparent",
+    )
 
 
 def main():
-    app = QApplication([])
+    if not SVG.is_file():
+        print(f"missing {SVG}", file=sys.stderr)
+        return 1
+
     sizes = (16, 22, 24, 32, 48, 64, 128, 256)
     for size in sizes:
         out_dir = ROOT / "icons" / "hicolor" / f"{size}x{size}" / "apps"
         out_dir.mkdir(parents=True, exist_ok=True)
         target = out_dir / "codenotch-plasma.png"
-        render_app_icon(size).save(str(target))
+        target.write_bytes(svg_to_png(size))
         print(f"wrote {target}")
+
     scalable = ROOT / "icons" / "hicolor" / "scalable" / "apps"
     scalable.mkdir(parents=True, exist_ok=True)
-    source = ROOT / "icons" / "codenotch-plasma.svg"
-    dest = scalable / "codenotch-plasma.svg"
-    dest.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
-    print(f"wrote {dest}")
+    shutil.copy2(SVG, scalable / "codenotch-plasma.svg")
+    print(f"wrote {scalable / 'codenotch-plasma.svg'}")
+
+    ASSET_SVG.write_text(SVG.read_text(encoding="utf-8"), encoding="utf-8")
+    ASSET_PNG.write_bytes(svg_to_png(64))
+    print(f"wrote {ASSET_SVG}")
+    print(f"wrote {ASSET_PNG}")
     return 0
 
 
