@@ -57,6 +57,11 @@ def is_dark_theme():
     return app.palette().window().color().lightness() < 128
 
 
+def icon_fill_for_system():
+    """Tray and launcher icons follow the Plasma panel, not the notch theme."""
+    return _ICON_FILL_DARK if is_dark_theme() else _ICON_FILL_LIGHT
+
+
 def icon_fill_for_theme():
     dark = resolve_dark(_active_mode, is_dark_theme())
     return _ICON_FILL_DARK if dark else _ICON_FILL_LIGHT
@@ -128,7 +133,7 @@ def sync_system_icons(force=False):
     """Write theme-aware icons to the user hicolor theme."""
     global _last_sync_fill
 
-    fill = icon_fill_for_theme()
+    fill = icon_fill_for_system()
     if not force and fill == _last_sync_fill:
         return fill
 
@@ -183,4 +188,5 @@ def install_theme_listener(callback):
 
 
 def load_app_icon(size=32, for_tray=False):
-    return QIcon(render_app_icon(size))
+    fill = icon_fill_for_system() if for_tray else icon_fill_for_theme()
+    return QIcon(render_app_icon(size, fill=fill))
