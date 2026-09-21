@@ -35,8 +35,21 @@ jobs:
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "tag=v${version}" >> "$GITHUB_OUTPUT"
 
-      - name: Build .deb
+      - name: Check if release already exists
         if: steps.skip.outputs.skip == 'false'
+        id: release_exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release ${{ steps.version.outputs.tag }} already exists — skipping build and publish."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build .deb
+        if: steps.skip.outputs.skip == 'false' && steps.release_exists.outputs.exists == 'false'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq python3-pip python3-pycryptodome
@@ -45,7 +58,7 @@ jobs:
           ls -la dist/
 
       - name: Create GitHub release
-        if: steps.skip.outputs.skip == 'false'
+        if: steps.skip.outputs.skip == 'false' && steps.release_exists.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
