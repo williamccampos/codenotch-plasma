@@ -5,12 +5,14 @@ import os
 import re
 import ssl
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-SERVICE = "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary"
+SERVICE_LEGACY = "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary"
+SERVICE_STATUS = "/exa.language_server_pb.LanguageServerService/GetUserStatus"
 CSRF_HEADER = "x-codeium-csrf-token"
-BODY = b'{"forceRefresh":true}'
+BODY_LEGACY = b'{"forceRefresh":true}'
+BODY_STATUS = b"{}"
 TIMEOUT = 5
 _UNVERIFIED = ssl.create_default_context()
 _UNVERIFIED.check_hostname = False
@@ -51,36 +53,52 @@ def read_quota():
 
 def _summarize(windows):
     ids = {w["id"] for w in windows}
+    gemini = [w for w in windows if "gemini" in w["id"]]
     headline = "gemini-5h" if "gemini-5h" in ids else (
-        "gemini-weekly" if "gemini-weekly" in ids else windows[0]["id"]
+        "gemini-weekly" if "gemini-weekly" in ids else (
+            gemini[0]["id"] if gemini else windows[0]["id"]
+        )
     )
     return {"windows": windows, "headlineID": headline, "found": True}
 
 
 def _quota(endpoint):
-    address = f"127.0.0.1:{endpoint['port']}{SERVICE}"
-    plain = _post(f"http://{address}", endpoint.get("csrf"))
-    if plain["status"] == 200:
-        return _windows_from(plain["text"])
-    if plain["status"] not in (0, 400, 404):
-        return []
-    secure = _post(f"https://{address}", endpoint.get("csrf"))
-    return _windows_from(secure["text"]) if secure["status"] == 200 else []
+    for service, body, parser in (
+        (SERVICE_STATUS, BODY_STATUS, _windows_from_status),
+        (SERVICE_LEGACY, BODY_LEGACY, _windows_from_legacy),
+    ):
+        address = f"127.0.0.1:{endpoint['port']}{service}"
+        for scheme in ("https", "http"):
+            result = _post(f"{scheme}://{address}", endpoint.get("csrf"), body)
+            if result["status"] == 200:
+                windows = parser(result["text"])
+                if windows:
+                    return windows
+            if result["status"] not in (0, 400, 404):
+                break
+    return []
 
 
-def _post(url, csrf):
-    headers = {"Content-Type": "application/json", "User-Agent": "codenotch-plasma/0.1"}
+def _post(url, csrf, body):
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "codenotch-plasma/0.1",
+        "Connect-Protocol-Version": "1",
+    }
     if csrf:
         headers[CSRF_HEADER] = csrf
-    req = Request(url, data=BODY, method="POST", headers=headers)
+    req = Request(url, data=body, method="POST", headers=headers)
     try:
         with urlopen(req, timeout=TIMEOUT, context=_UNVERIFIED if url.startswith("https") else None) as resp:
             return {"status": resp.status, "text": resp.read().decode("utf-8", "replace")}
-    except Exception:
+    except HTTPError as exc:
+        payload = exc.read().decode("utf-8", "replace") if exc.fp else ""
+        return {"status": exc.code, "text": payload}
+    except (URLError, OSError, TimeoutError):
         return {"status": 0, "text": ""}
 
 
-def _windows_from(text):
+def _windows_from_legacy(text):
     try:
         json_body = json.loads(text)
     except json.JSONDecodeError:
@@ -91,23 +109,75 @@ def _windows_from(text):
             remaining = bucket.get("remainingFraction")
             if not isinstance(remaining, (int, float)) or remaining < 0 or remaining > 1:
                 continue
-            resets_at = bucket.get("resetTime")
-            reset_dt = None
-            if resets_at:
-                try:
-                    reset_dt = resets_at if hasattr(resets_at, "timestamp") else None
-                    if isinstance(resets_at, str):
-                        from datetime import datetime
-                        reset_dt = datetime.fromisoformat(resets_at.replace("Z", "+00:00"))
-                except (ValueError, TypeError):
-                    reset_dt = None
             windows.append({
                 "id": bucket.get("bucketId") or group.get("displayName") or "quota",
                 "label": _label_for(group, bucket),
                 "usedFraction": 1 - remaining,
-                "resetsAt": reset_dt,
+                "resetsAt": _parse_reset(bucket.get("resetTime")),
             })
     return windows
+
+
+def _windows_from_status(text):
+    try:
+        json_body = json.loads(text)
+    except json.JSONDecodeError:
+        return []
+    user = json_body.get("userStatus") or {}
+    plan = user.get("planStatus") or {}
+    plan_info = plan.get("planInfo") or {}
+    windows = []
+
+    monthly_prompt = plan_info.get("monthlyPromptCredits")
+    available_prompt = plan.get("availablePromptCredits")
+    if isinstance(monthly_prompt, (int, float)) and monthly_prompt > 0 and isinstance(available_prompt, (int, float)):
+        windows.append({
+            "id": "prompt-credits",
+            "label": "Prompt credits",
+            "usedFraction": 1 - (available_prompt / monthly_prompt),
+            "resetsAt": None,
+        })
+
+    monthly_flow = plan_info.get("monthlyFlowCredits")
+    available_flow = plan.get("availableFlowCredits")
+    if isinstance(monthly_flow, (int, float)) and monthly_flow > 0 and isinstance(available_flow, (int, float)):
+        windows.append({
+            "id": "flow-credits",
+            "label": "Flow credits",
+            "usedFraction": 1 - (available_flow / monthly_flow),
+            "resetsAt": None,
+        })
+
+    for cfg in (user.get("cascadeModelConfigData") or {}).get("clientModelConfigs") or []:
+        quota = cfg.get("quotaInfo") or {}
+        remaining = quota.get("remainingFraction")
+        if not isinstance(remaining, (int, float)) or remaining < 0 or remaining > 1:
+            continue
+        label = cfg.get("label") or "Model"
+        windows.append({
+            "id": _model_id(label),
+            "label": label,
+            "usedFraction": 1 - remaining,
+            "resetsAt": _parse_reset(quota.get("resetTime")),
+        })
+    return windows
+
+
+def _model_id(label):
+    slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+    return slug or "model"
+
+
+def _parse_reset(value):
+    if not value:
+        return None
+    try:
+        from datetime import datetime
+        if hasattr(value, "timestamp"):
+            return value
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
 
 
 def _label_for(group, bucket):
@@ -207,18 +277,10 @@ def windows_from_api(json_body):
             continue
         if not isinstance(used, (int, float)) or used < 0 or used > limit * 1.5:
             continue
-        resets_at = bucket.get("resetTime")
-        reset_dt = None
-        if resets_at:
-            try:
-                from datetime import datetime
-                reset_dt = datetime.fromisoformat(str(resets_at).replace("Z", "+00:00"))
-            except ValueError:
-                reset_dt = None
         windows.append({
             "id": bucket.get("name") or bucket.get("displayName"),
             "label": bucket.get("displayName") or bucket.get("name") or "Usage",
             "usedFraction": used / limit,
-            "resetsAt": reset_dt,
+            "resetsAt": _parse_reset(bucket.get("resetTime")),
         })
     return windows
