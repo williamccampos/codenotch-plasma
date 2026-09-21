@@ -5,6 +5,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 CANDIDATES = [
     os.path.join(os.path.dirname(HERE), "src"),
+    "/usr/share/codenotch-plasma/src",
     os.path.expanduser("~/.local/share/codenotch-plasma/src"),
 ]
 for candidate in CANDIDATES:

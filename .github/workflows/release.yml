@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: ${{ !contains(github.event.head_commit.message, '[skip release]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Skip tagged commits
+        id: skip
+        run: |
+          if git describe --exact-match --tags HEAD >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute next version
+        if: steps.skip.outputs.skip == 'false'
+        id: version
+        run: |
+          latest="$(git tag -l 'v*' --sort=-v:refname | head -n1)"
+          if [ -z "$latest" ]; then
+            version="$(tr -d '[:space:]' < VERSION)"
+          else
+            base="${latest#v}"
+            IFS='.' read -r major minor patch _ <<< "$base"
+            patch=$((patch + 1))
+            version="${major}.${minor}.${patch}"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Build .deb
+        if: steps.skip.outputs.skip == 'false'
+        run: |
+          chmod +x scripts/build-deb.sh
+          ./scripts/build-deb.sh "${{ steps.version.outputs.version }}"
+          ls -la dist/
+
+      - name: Create GitHub release
+        if: steps.skip.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "Codenotch Plasma ${{ steps.version.outputs.version }}" \
+            --generate-notes \
+            "dist/codenotch-plasma_${{ steps.version.outputs.version }}_amd64.deb"
