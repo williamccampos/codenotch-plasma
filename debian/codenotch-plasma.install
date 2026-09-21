@@ -1,0 +1,7 @@
+bin/codenotch-plasma usr/bin/
+src/ usr/share/codenotch-plasma/
+LICENSE usr/share/codenotch-plasma/
+README.md usr/share/codenotch-plasma/
+config.example.json usr/share/codenotch-plasma/
+debian/codenotch-plasma.desktop usr/share/applications/codenotch-plasma.desktop
+debian/codenotch-plasma.desktop etc/xdg/autostart/codenotch-plasma.desktop

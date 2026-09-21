@@ -51,6 +51,18 @@ Codenotch **nunca faz login**. Ele só lê credenciais que já existem na sua m�
 
 ## Instalação rápida
 
+### Pacote `.deb` (recomendado)
+
+Baixe o `.deb` na [página de Releases](https://github.com/williamccampos/codenotch-plasma/releases) e instale:
+
+```bash
+sudo apt install ./codenotch-plasma_<versão>_amd64.deb
+```
+
+O pacote instala em `/usr/bin/codenotch-plasma`, registra autostart no login e puxa as dependências Python do sistema.
+
+### Instalação manual (desenvolvimento)
+
 ```bash
 git clone https://github.com/williamccampos/codenotch-plasma.git
 cd codenotch-plasma
@@ -65,6 +77,14 @@ sudo apt install libsecret-tools # opcional — Antigravity IDE: ler credenciais
 ```
 
 O script instala em `~/.local/bin/codenotch-plasma`, registra autostart e inicia o notch na borda direita.
+
+### Build local do `.deb`
+
+```bash
+./scripts/build-deb.sh          # usa VERSION do repositório
+./scripts/build-deb.sh 0.1.1    # versão explícita
+sudo apt install ./dist/codenotch-plasma_0.1.1_amd64.deb
+```
 
 **Uso:** passe o mouse na borda → notch desdobra. Clique esquerdo abre o dashboard do provider. Clique direito: **Sempre aberto** ou **Sair**.
 
@@ -134,11 +154,19 @@ Arquivo: `~/.config/codenotch-plasma/config.json` — veja [`config.example.json
 
 ## Desinstalar
 
+**Pacote `.deb`:**
+
+```bash
+sudo apt remove codenotch-plasma
+```
+
+**Instalação manual:**
+
 ```bash
 ./uninstall.sh
 ```
 
-Config e cache do usuário são preservados.
+Config e cache do usuário são preservados em ambos os casos.
 
 ## Privacidade
 
