@@ -1,0 +1,5 @@
+# PyQt5 is usually installed via the system package manager:
+#   sudo apt install python3-pyqt5
+#
+# Optional — Cursor Corp via browser cookies (Edge):
+browser-cookie3>=0.19.0

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local / secrets — never commit
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+auth.json
+
+# User runtime (not part of the repo)
+config.json

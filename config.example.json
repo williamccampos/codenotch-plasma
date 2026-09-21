@@ -1,0 +1,15 @@
+{
+  "edge": "right",
+  "position": 0.5,
+  "alwaysOpen": false,
+  "hideInFullscreen": true,
+  "scale": 1.0,
+  "textScale": 1.0,
+  "showLabels": true,
+  "hotZone": 4,
+  "openDelay": 150,
+  "refreshInterval": 60,
+  "color": "#000000",
+  "opacity": 1.0,
+  "disabledProviders": []
+}
