@@ -1,3 +1,11 @@
+codenotch-plasma (0.1.8-1) unstable; urgency=medium
+
+  * Fix menu icon sync without cairosvg by inverting packaged PNGs.
+  * Always render tray/menu icons from packaged assets, not stale cache.
+  * Align CI release version with the VERSION file.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 01:52:00 -0300
+
 codenotch-plasma (0.2.0-1) unstable; urgency=medium
 
   * Add notch theme modes (auto, dark, light) with in-notch toggle button.

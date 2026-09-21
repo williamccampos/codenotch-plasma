@@ -15,6 +15,7 @@ _ICON_FILL_DARK = "#FFFFFF"
 _ICON_FILL_LIGHT = "#000000"
 _ICON_SIZES = (16, 22, 24, 32, 48, 64, 128, 256)
 _USER_ICON_ROOT = Path.home() / ".local/share/icons/hicolor"
+_SYSTEM_ICON_ROOT = Path("/usr/share/icons/hicolor")
 _last_sync_fill = None
 _active_mode = "auto"
 
@@ -36,7 +37,7 @@ def _search_paths():
         yield root / f"{_ICON_NAME}.png"
     for size in _ICON_SIZES:
         yield _USER_ICON_ROOT / f"{size}x{size}" / "apps" / f"{_ICON_NAME}.png"
-        yield Path(f"/usr/share/icons/hicolor/{size}x{size}/apps/{_ICON_NAME}.png")
+        yield _SYSTEM_ICON_ROOT / f"{size}x{size}" / "apps" / f"{_ICON_NAME}.png"
 
 
 def _master_svg():
@@ -60,40 +61,37 @@ def icon_fill_for_theme():
     return _ICON_FILL_DARK if dark else _ICON_FILL_LIGHT
 
 
-def _svg_png(svg_path: Path, size: int, fill: str) -> bytes | None:
-    try:
-        import cairosvg
+def _system_icon_path(size: int) -> Path | None:
+    path = _SYSTEM_ICON_ROOT / f"{size}x{size}" / "apps" / f"{_ICON_NAME}.png"
+    return path if path.exists() else None
 
-        svg_text = svg_path.read_text(encoding="utf-8").replace(
-            f'fill="{_SVG_FILL}"',
-            f'fill="{fill}"',
-        )
-        return cairosvg.svg2png(
-            bytestring=svg_text.encode("utf-8"),
-            output_width=size,
-            output_height=size,
-            background_color="transparent",
-        )
-    except Exception:
+
+def _pixmap_for_fill(size: int, fill: str) -> QPixmap | None:
+    source = _system_icon_path(size)
+    if source is None:
+        bundled = Path(__file__).resolve().parent / "assets" / f"{_ICON_NAME}.png"
+        if bundled.exists():
+            source = bundled
+        else:
+            return None
+
+    pixmap = QPixmap(str(source))
+    if pixmap.isNull():
         return None
+    if pixmap.width() != size or pixmap.height() != size:
+        pixmap = pixmap.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
+    if fill == _ICON_FILL_DARK:
+        image = pixmap.toImage().convertToFormat(QImage.Format_ARGB32)
+        image.invertPixels(QImage.InvertRgb)
+        return QPixmap.fromImage(image)
+    return pixmap
 
 
 def render_app_icon(size=32, fill=None):
-    svg = _master_svg()
-    if svg:
-        data = _svg_png(svg, size, fill or icon_fill_for_theme())
-        if data:
-            image = QImage.fromData(data)
-            if not image.isNull():
-                return QPixmap.fromImage(image)
-
-    bundled = Path(__file__).resolve().parent / "assets" / f"{_ICON_NAME}.png"
-    if bundled.exists():
-        pixmap = QPixmap(str(bundled))
-        if not pixmap.isNull():
-            return pixmap.scaled(
-                size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation,
-            )
+    pixmap = _pixmap_for_fill(size, fill or icon_fill_for_theme())
+    if pixmap is not None and not pixmap.isNull():
+        return pixmap
 
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
@@ -113,6 +111,12 @@ def refresh_system_icon_cache():
             check=False,
             capture_output=True,
         )
+    if _SYSTEM_ICON_ROOT.exists():
+        subprocess.run(
+            ["gtk-update-icon-cache", "-f", "-q", str(_SYSTEM_ICON_ROOT)],
+            check=False,
+            capture_output=True,
+        )
     for cmd in ("kbuildsycoca6", "kbuildsycoca5"):
         path = shutil.which(cmd)
         if path:
@@ -127,26 +131,29 @@ def sync_system_icons(force=False):
     if not force and fill == _last_sync_fill:
         return fill
 
-    svg = _master_svg()
-    if svg is None:
-        return fill
-
+    wrote = False
     for size in _ICON_SIZES:
+        pixmap = _pixmap_for_fill(size, fill)
+        if pixmap is None or pixmap.isNull():
+            continue
         out = _USER_ICON_ROOT / f"{size}x{size}" / "apps" / f"{_ICON_NAME}.png"
         out.parent.mkdir(parents=True, exist_ok=True)
-        data = _svg_png(svg, size, fill)
-        if data:
-            out.write_bytes(data)
+        pixmap.save(str(out), "PNG")
+        wrote = True
 
-    scalable = _USER_ICON_ROOT / "scalable" / "apps" / f"{_ICON_NAME}.svg"
-    scalable.parent.mkdir(parents=True, exist_ok=True)
-    scalable.write_text(
-        svg.read_text(encoding="utf-8").replace(f'fill="{_SVG_FILL}"', f'fill="{fill}"'),
-        encoding="utf-8",
-    )
+    svg = _master_svg()
+    if svg is not None:
+        scalable = _USER_ICON_ROOT / "scalable" / "apps" / f"{_ICON_NAME}.svg"
+        scalable.parent.mkdir(parents=True, exist_ok=True)
+        scalable.write_text(
+            svg.read_text(encoding="utf-8").replace(f'fill="{_SVG_FILL}"', f'fill="{fill}"'),
+            encoding="utf-8",
+        )
+        wrote = True
 
-    _last_sync_fill = fill
-    refresh_system_icon_cache()
+    if wrote:
+        _last_sync_fill = fill
+        refresh_system_icon_cache()
     return fill
 
 
@@ -173,19 +180,4 @@ def install_theme_listener(callback):
 
 
 def load_app_icon(size=32, for_tray=False):
-    if for_tray:
-        return QIcon(render_app_icon(size))
-
-    themed = QIcon.fromTheme(_ICON_NAME)
-    if not themed.isNull():
-        pixmap = themed.pixmap(size, size)
-        if not pixmap.isNull():
-            return QIcon(pixmap)
-
-    for path in _search_paths():
-        if path.suffix == ".png" and path.exists():
-            icon = QIcon(str(path))
-            if not icon.isNull():
-                return icon
-
     return QIcon(render_app_icon(size))

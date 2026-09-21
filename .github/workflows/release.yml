@@ -31,15 +31,7 @@ jobs:
         if: steps.skip.outputs.skip == 'false'
         id: version
         run: |
-          latest="$(git tag -l 'v*' --sort=-v:refname | head -n1)"
-          if [ -z "$latest" ]; then
-            version="$(tr -d '[:space:]' < VERSION)"
-          else
-            base="${latest#v}"
-            IFS='.' read -r major minor patch _ <<< "$base"
-            patch=$((patch + 1))
-            version="${major}.${minor}.${patch}"
-          fi
+          version="$(tr -d '[:space:]' < VERSION)"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "tag=v${version}" >> "$GITHUB_OUTPUT"
 
