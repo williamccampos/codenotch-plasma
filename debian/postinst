@@ -9,6 +9,22 @@ case "$1" in
         if command -v gtk-update-icon-cache >/dev/null 2>&1; then
             gtk-update-icon-cache -f -q /usr/share/icons/hicolor || true
         fi
+        refresh_user_icon_cache() {
+            rm -f "$1/.cache/icon-cache.kcache"
+            rm -f "$1/.cache/ksycoca5_"*
+            rm -f "$1/.cache/ksycoca6_"*
+            if command -v kbuildsycoca6 >/dev/null 2>&1; then
+                HOME="$1" kbuildsycoca6 --noincremental || true
+            elif command -v kbuildsycoca5 >/dev/null 2>&1; then
+                HOME="$1" kbuildsycoca5 --noincremental || true
+            fi
+        }
+        if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+            user_home=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+            if [ -n "$user_home" ] && [ -d "$user_home" ]; then
+                refresh_user_icon_cache "$user_home"
+            fi
+        fi
         if command -v kbuildsycoca6 >/dev/null 2>&1; then
             kbuildsycoca6 --noincremental || true
         elif command -v kbuildsycoca5 >/dev/null 2>&1; then

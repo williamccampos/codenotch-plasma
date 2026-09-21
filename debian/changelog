@@ -1,3 +1,10 @@
+codenotch-plasma (0.1.5-1) unstable; urgency=medium
+
+  * Point the menu launcher at the installed PNG icon directly.
+  * Refresh the installing user's KDE icon cache during package setup.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 01:32:00 -0300
+
 codenotch-plasma (0.1.4-1) unstable; urgency=medium
 
   * Fix tray icon visibility with theme-aware rendering.
