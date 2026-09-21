@@ -29,6 +29,13 @@ install -m 0644 "${ROOT}/debian/codenotch-plasma.desktop" \
   "${PKG}/usr/share/applications/codenotch-plasma.desktop"
 install -m 0644 "${ROOT}/debian/codenotch-plasma.desktop" \
   "${PKG}/etc/xdg/autostart/codenotch-plasma.desktop"
+if [ -d "${ROOT}/icons/hicolor" ]; then
+  install -d "${PKG}/usr/share/icons"
+  cp -a "${ROOT}/icons/hicolor" "${PKG}/usr/share/icons/"
+fi
+install -d "${PKG}/usr/share/codenotch-plasma/icons"
+install -m 0644 "${ROOT}/icons/codenotch-plasma.svg" \
+  "${PKG}/usr/share/codenotch-plasma/icons/codenotch-plasma.svg"
 
 # Bundle browser-cookie3 (not packaged on Ubuntu 24.04 / many Debian derivatives).
 python3 -m pip install --disable-pip-version-check --no-cache-dir \

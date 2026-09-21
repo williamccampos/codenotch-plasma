@@ -1,3 +1,10 @@
+codenotch-plasma (0.1.2-1) unstable; urgency=medium
+
+  * Add Codenotch app and tray icons (pill + usage rings).
+  * Install icons into the hicolor theme for menu and system tray.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 01:10:00 -0300
+
 codenotch-plasma (0.1.1-1) unstable; urgency=medium
 
   * Bundle browser-cookie3 in the package (not available via apt on Ubuntu 24.04).

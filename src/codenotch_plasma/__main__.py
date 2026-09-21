@@ -3,9 +3,9 @@ import sys
 from pathlib import Path
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor, QIcon, QPainter, QPixmap
 from PyQt5.QtWidgets import QAction, QApplication, QMenu, QSystemTrayIcon
 
+from .icons import load_app_icon
 from .layout import configure_layout, set_appearance
 from .overlay import NotchOverlay
 from .provider_order import joining_connected, remember
@@ -161,15 +161,7 @@ class CodenotchApp:
 
     def _build_tray(self):
         tray = QSystemTrayIcon(self._app)
-        icon_pix = QPixmap(32, 32)
-        icon_pix.fill(QColor(0, 0, 0, 0))
-        painter = QPainter(icon_pix)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(QColor("#000000"))
-        painter.setPen(Qt.NoPen)
-        painter.drawRoundedRect(4, 2, 24, 28, 8, 8)
-        painter.end()
-        tray.setIcon(QIcon(icon_pix))
+        tray.setIcon(load_app_icon(22))
         tray.setToolTip("Codenotch")
         tray.setContextMenu(self._build_menu())
         tray.activated.connect(self._on_tray_activated)
@@ -206,6 +198,7 @@ def main(argv=None):
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app = QApplication(argv)
     app.setApplicationName("Codenotch")
+    app.setWindowIcon(load_app_icon(32))
     app.setQuitOnLastWindowClosed(False)
     CodenotchApp(app)
     return app.exec_()

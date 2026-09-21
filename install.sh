@@ -7,6 +7,11 @@ AUTO="${HOME}/.config/autostart"
 
 mkdir -p "$BIN_DIR" "$SHARE" "$AUTO"
 cp -a "$ROOT/src" "$ROOT/bin" "$ROOT/LICENSE" "$ROOT/README.md" "$SHARE/"
+if [ -d "$ROOT/icons/hicolor" ]; then
+  mkdir -p "${HOME}/.local/share/icons"
+  cp -a "$ROOT/icons/hicolor" "${HOME}/.local/share/icons/"
+  cp -a "$ROOT/icons" "$SHARE/"
+fi
 if ! python3 -c "import browser_cookie3" >/dev/null 2>&1; then
   echo "Instalando browser-cookie3 para sessão corporativa do Cursor no browser..."
   python3 -m pip install --user --break-system-packages browser-cookie3 >/dev/null 2>&1 || true
@@ -23,7 +28,7 @@ Type=Application
 Name=Codenotch
 Comment=Usage notch for coding assistants
 Exec=${BIN_DIR}/codenotch-plasma
-Icon=preferences-desktop-display
+Icon=codenotch-plasma
 Terminal=false
 StartupNotify=false
 Categories=Utility;
