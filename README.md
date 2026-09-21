@@ -2,41 +2,36 @@
 
 Notch de uso de assistentes de código na borda da tela — port para **KDE Plasma no Linux**.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Port do excelente [codenotch-gnome](https://github.com/RicardoEGG/codenotch-gnome) (por [Ricardo Egg](https://github.com/RicardoEGG)), que por sua vez é port do [codenotch](https://github.com/vinzdg/codenotch) original de [vinzdg](https://github.com/vinzdg).
 
 > **Disclaimer:** esta versão é **exclusiva para Linux com KDE Plasma** (testado em Plasma 5.27 / Ubuntu 24.04).  
-> Não é um plasmoid de painel — é um overlay frameless que replica o visual e a experiência do notch original na borda da tela. GNOME, Windows e macOS não são suportados.
+> Não é um plasmoid de painel — é um overlay frameless que replica o visual e a experiência do notch original na borda da tela. GNOME, Windows e macOS **não são suportados**.
 
 ## Prévia
 
-<!-- Adicione seus prints em docs/screenshots/ e descomente as linhas abaixo -->
+| Notch expandido | Card de hover |
+|:---:|:---:|
+| ![Notch expandido com anéis de uso](docs/screenshots/notch-rings.png) | ![Card de hover com detalhes do Codex](docs/screenshots/notch-card.png) |
 
-<!-- ![Notch recolhido na borda](docs/screenshots/notch-folded.png) -->
-<!-- ![Notch expandido com anéis de uso](docs/screenshots/notch-rings.png) -->
-<!-- ![Card de hover com detalhes](docs/screenshots/notch-card.png) -->
-<!-- ![Anel duplo do Codex](docs/screenshots/codex-dual-ring.png) -->
+| Recolhido na borda | Anel duplo do Codex |
+|:---:|:---:|
+| ![Notch recolhido na borda](docs/screenshots/notch-folded.png) | ![Close do anel duplo — 5h + semanal](docs/screenshots/codex-dual-ring.png) |
 
 ## O que é
 
-Um pill preto colado na borda da tela que desdobra ao passar o mouse, mostrando:
+Um pill preto colado na borda da tela que desdobra ao passar o mouse, mostrando o uso dos seus assistentes de código em tempo real:
 
-- **Anéis coloridos** por provider (verde → amarelo → laranja conforme o uso)
-- **Card de hover** com limites, resets e sessões ativas
+- **Anéis coloridos** por provider — verde (0–49%), amarelo (50–69%), laranja (70–100%)
+- **Card de hover** com limites, horários de reset e sessões ativas
 - **Anel duplo no Codex** — externo (5h) + interno (semanal)
-- **Refresh automático** nos resets de quota
+- **Refresh automático** quando os limites resetam
 - **Autostart** no login do KDE
 
-## Requisitos
+Codenotch **nunca faz login**. Ele só lê credenciais que já existem na sua máquina.
 
-| Item | Versão / nota |
-|------|----------------|
-| SO | Linux |
-| Desktop | **KDE Plasma** (Wayland ou X11) |
-| Python | 3.10+ |
-| PyQt5 | `sudo apt install python3-pyqt5` |
-| Opcional | `browser-cookie3` — sessão corporativa do Cursor no browser |
-
-## Instalação
+## Instalação rápida
 
 ```bash
 git clone https://github.com/williamccampos/codenotch-plasma.git
@@ -44,20 +39,24 @@ cd codenotch-plasma
 ./install.sh
 ```
 
-O script instala em `~/.local/bin/codenotch-plasma`, registra autostart em `~/.config/autostart/` e inicia o notch na borda direita.
+**Requisitos:** Linux · KDE Plasma · Python 3.10+ · PyQt5
 
-Clique direito no notch: **Sempre aberto** ou **Sair**.
+```bash
+sudo apt install python3-pyqt5   # Ubuntu / Debian
+```
 
-## Providers
+O script instala em `~/.local/bin/codenotch-plasma`, registra autostart e inicia o notch na borda direita.
 
-Codenotch **nunca faz login**. Um provider só aparece quando já existe credencial local.
+**Uso:** passe o mouse na borda → notch desdobra. Clique esquerdo abre o dashboard do provider. Clique direito: **Sempre aberto** ou **Sair**.
 
-| Provider | Credencial local |
-|----------|------------------|
+## Providers suportados
+
+| Provider | Onde lê a credencial |
+|----------|----------------------|
 | Claude Code | `~/.claude/.credentials.json` |
 | Codex | `~/.codex/auth.json` |
 | Cursor Personal | sessão do Cursor IDE / agent |
-| Cursor Corp | login no browser (Edge) + `browser-cookie3` |
+| Cursor Corp | login no browser (Edge) + [`browser-cookie3`](requirements.txt) |
 | Grok | `~/.grok/auth.json` |
 | Kiro | `~/.local/share/kiro-cli/data.sqlite3` |
 
@@ -65,16 +64,15 @@ Se nenhum provider estiver disponível, anéis de demonstração são exibidos p
 
 ### Codex — anel duplo
 
-- **Anel externo (grosso):** limite de 5 horas
-- **Anel interno (fino):** limite semanal
-- **Label:** % do limite semanal (quota principal)
-- **Logo:** permanece aceso enquanto o limite semanal não estiver em 100%
+| Anel | Limite | Comportamento |
+|------|--------|---------------|
+| Externo (grosso) | 5 horas | Esgotado → laranja |
+| Interno (fino) | Semanal | Quota principal → label abaixo do anel |
+| Logo | — | Permanece aceso enquanto o limite **semanal** não estiver em 100% |
 
 ## Configuração
 
-Arquivo: `~/.config/codenotch-plasma/config.json`
-
-Exemplo em [`config.example.json`](config.example.json).
+Arquivo: `~/.config/codenotch-plasma/config.json` — veja [`config.example.json`](config.example.json).
 
 | Chave | Padrão | Descrição |
 |-------|--------|-----------|
@@ -90,8 +88,7 @@ Exemplo em [`config.example.json`](config.example.json).
 | `opacity` | `1.0` | Opacidade do corpo |
 | `disabledProviders` | `[]` | IDs de providers desabilitados |
 
-Cache de leituras: `~/.cache/codenotch/readings.json`  
-Log: `/tmp/codenotch-plasma.log`
+**Logs e cache:** `/tmp/codenotch-plasma.log` · `~/.cache/codenotch/readings.json`
 
 ## Desinstalar
 
@@ -99,11 +96,17 @@ Log: `/tmp/codenotch-plasma.log`
 ./uninstall.sh
 ```
 
+Config e cache do usuário são preservados.
+
+## Privacidade
+
+Codenotch lê credenciais **apenas localmente** e nunca as envia para servidores de terceiros além das APIs oficiais de cada provider. Nenhum dado é coletado pelo próprio Codenotch.
+
 ## Créditos
 
 - Design, geometria, paleta e glyphs: [vinzdg/codenotch](https://github.com/vinzdg/codenotch)
 - Port GNOME: [RicardoEGG/codenotch-gnome](https://github.com/RicardoEGG/codenotch-gnome)
-- Port KDE Plasma: este repositório
+- Port KDE Plasma: [williamccampos/codenotch-plasma](https://github.com/williamccampos/codenotch-plasma)
 
 ## Licença
 

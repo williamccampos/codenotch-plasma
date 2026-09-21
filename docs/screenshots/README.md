@@ -1,14 +1,12 @@
 # Screenshots
 
-Adicione aqui os prints para o README principal.
-
-Sugestão de nomes:
+Imagens usadas no README principal.
 
 | Arquivo | Conteúdo |
 |---------|----------|
 | `notch-folded.png` | Pill recolhido na borda |
 | `notch-rings.png` | Notch expandido com todos os anéis |
-| `notch-card.png` | Card de hover com detalhes de um provider |
-| `codex-dual-ring.png` | Close do anel duplo do Codex |
+| `notch-card.png` | Card de hover com detalhes do Codex |
+| `codex-dual-ring.png` | Close do anel duplo (5h + semanal) |
 
-Depois de adicionar, descomente as linhas de imagem no `README.md` na raiz.
+Todas as capturas foram revisadas — sem emails, tokens ou dados pessoais visíveis.
