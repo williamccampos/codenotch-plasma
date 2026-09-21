@@ -14,9 +14,16 @@ ASSET_PNG = ROOT / "src" / "codenotch_plasma" / "assets" / "codenotch-plasma.png
 ASSET_SVG = ROOT / "src" / "codenotch_plasma" / "assets" / "codenotch-plasma.svg"
 
 
+MENU_FILL = "#1E1E1E"
+
+
 def svg_to_png(size: int) -> bytes:
+    svg_text = SVG.read_text(encoding="utf-8").replace(
+        'fill="#FFFFFF"',
+        f'fill="{MENU_FILL}"',
+    )
     return cairosvg.svg2png(
-        url=str(SVG),
+        bytestring=svg_text.encode("utf-8"),
         output_width=size,
         output_height=size,
         background_color="transparent",

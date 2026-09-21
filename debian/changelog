@@ -1,3 +1,10 @@
+codenotch-plasma (0.1.4-1) unstable; urgency=medium
+
+  * Fix tray icon visibility with theme-aware rendering.
+  * Refresh KDE/GTK icon caches on install.
+
+ -- William Campos <williamcampos29@gmail.com>  Mon, 21 Sep 2026 01:28:00 -0300
+
 codenotch-plasma (0.1.3-1) unstable; urgency=medium
 
   * Replace placeholder icon with minimalist notch mark (design D).

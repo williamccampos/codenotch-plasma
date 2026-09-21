@@ -161,7 +161,7 @@ class CodenotchApp:
 
     def _build_tray(self):
         tray = QSystemTrayIcon(self._app)
-        tray.setIcon(load_app_icon(22))
+        tray.setIcon(load_app_icon(22, for_tray=True))
         tray.setToolTip("Codenotch")
         tray.setContextMenu(self._build_menu())
         tray.activated.connect(self._on_tray_activated)

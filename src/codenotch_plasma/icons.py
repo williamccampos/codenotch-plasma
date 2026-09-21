@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QImage, QPixmap
 
 _ICON_NAME = "codenotch-plasma"
+_SVG_FILL = "#FFFFFF"
 
 
 def _search_paths():
@@ -29,23 +30,41 @@ def _master_svg():
     return None
 
 
-def render_app_icon(size=32):
+def _fill_color():
+    from PyQt5.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None:
+        return "#E8E8E8"
+    return app.palette().windowText().color().name()
+
+
+def _svg_png(svg_path: Path, size: int, fill: str) -> bytes | None:
+    try:
+        import cairosvg
+
+        svg_text = svg_path.read_text(encoding="utf-8").replace(
+            f'fill="{_SVG_FILL}"',
+            f'fill="{fill}"',
+        )
+        return cairosvg.svg2png(
+            bytestring=svg_text.encode("utf-8"),
+            output_width=size,
+            output_height=size,
+            background_color="transparent",
+        )
+    except Exception:
+        return None
+
+
+def render_app_icon(size=32, fill=None):
     svg = _master_svg()
     if svg:
-        try:
-            import cairosvg
-
-            data = cairosvg.svg2png(
-                url=str(svg),
-                output_width=size,
-                output_height=size,
-                background_color="transparent",
-            )
+        data = _svg_png(svg, size, fill or _fill_color())
+        if data:
             image = QImage.fromData(data)
             if not image.isNull():
                 return QPixmap.fromImage(image)
-        except Exception:
-            pass
 
     bundled = Path(__file__).resolve().parent / "assets" / f"{_ICON_NAME}.png"
     if bundled.exists():
@@ -60,7 +79,10 @@ def render_app_icon(size=32):
     return pixmap
 
 
-def load_app_icon(size=32):
+def load_app_icon(size=32, for_tray=False):
+    if for_tray:
+        return QIcon(render_app_icon(size))
+
     themed = QIcon.fromTheme(_ICON_NAME)
     if not themed.isNull():
         pixmap = themed.pixmap(size, size)

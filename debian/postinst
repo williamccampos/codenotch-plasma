@@ -7,7 +7,12 @@ case "$1" in
             update-desktop-database -q /usr/share/applications || true
         fi
         if command -v gtk-update-icon-cache >/dev/null 2>&1; then
-            gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+            gtk-update-icon-cache -f -q /usr/share/icons/hicolor || true
+        fi
+        if command -v kbuildsycoca6 >/dev/null 2>&1; then
+            kbuildsycoca6 --noincremental || true
+        elif command -v kbuildsycoca5 >/dev/null 2>&1; then
+            kbuildsycoca5 --noincremental || true
         fi
         ;;
 esac
