@@ -64,6 +64,8 @@ No ícone da bandeja do sistema, **Ferramentas** lista todas as IAs com um inter
 - Ao habilitar uma IA nova, ela aparece **no final** do notch; ao desabilitar, o notch encolhe
 - A ordem é salva em `providerOrder` no `config.json`
 
+![Menu Ferramentas na bandeja do sistema](docs/screenshots/tray-tools.png)
+
 ## Providers suportados
 
 | Provider | Onde lê a credencial |
