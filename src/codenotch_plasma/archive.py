@@ -24,6 +24,10 @@ def restore_snapshot(raw):
         }
         if isinstance(w.get("used"), (int, float)):
             item["used"] = w["used"]
+        if isinstance(w.get("limit"), (int, float)):
+            item["limit"] = w["limit"]
+        if isinstance(w.get("unit"), str):
+            item["unit"] = w["unit"]
         if isinstance(w.get("remainingFraction"), (int, float)):
             item["remainingFraction"] = w["remainingFraction"]
         if isinstance(w.get("displayMode"), str):
@@ -42,6 +46,9 @@ def restore_snapshot(raw):
         snapshot["fidelity"] = raw["fidelity"]
     if isinstance(raw.get("source"), str):
         snapshot["source"] = raw["source"]
+    for key in ("membershipType", "ringMode"):
+        if isinstance(raw.get(key), str):
+            snapshot[key] = raw[key]
     return snapshot
 
 

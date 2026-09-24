@@ -113,6 +113,9 @@ def _windows_from_legacy(text):
                 "id": bucket.get("bucketId") or group.get("displayName") or "quota",
                 "label": _label_for(group, bucket),
                 "usedFraction": 1 - remaining,
+                "remainingFraction": remaining,
+                "used": bucket.get("used"),
+                "limit": bucket.get("limit"),
                 "resetsAt": _parse_reset(bucket.get("resetTime")),
             })
     return windows
@@ -281,6 +284,8 @@ def windows_from_api(json_body):
             "id": bucket.get("name") or bucket.get("displayName"),
             "label": bucket.get("displayName") or bucket.get("name") or "Usage",
             "usedFraction": used / limit,
+            "used": used,
+            "limit": limit,
             "resetsAt": _parse_reset(bucket.get("resetTime")),
         })
     return windows

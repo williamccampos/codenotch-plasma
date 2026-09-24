@@ -221,7 +221,8 @@ Arquivo: `~/.config/codenotch-plasma/config.json` — veja [`config.example.json
 | `scale` | `1.0` | Escala do notch |
 | `textScale` | `1.0` | Escala do texto |
 | `openDelay` | `150` | Delay para abrir (ms) |
-| `refreshInterval` | `60` | Intervalo de refresh (s) |
+| `refreshInterval` | `30` | Intervalo de atualização quando há atividade (s; mínimo 15) |
+| `idleRefreshInterval` | `300` | Intervalo de atualização quando não há atividade (s) |
 | `color` | `#000000` | Cor do corpo (sobrescrita pelo `themeMode`) |
 | `opacity` | `1.0` | Opacidade do corpo |
 | `themeMode` | `auto` | Tema do notch: `auto`, `dark` ou `light` |

@@ -60,7 +60,7 @@ class ClaudeProvider:
             raise ProviderError("badResponse", f"Claude answered HTTP {status}")
         self.backoff_until = None
         json_body = json.loads(text)
-        return {"windows": windows_from(json_body), "headlineID": "session"}
+        return {"windows": windows_from(json_body), "headlineID": "session", "fidelity": "official"}
 
 
 def windows_from(body):

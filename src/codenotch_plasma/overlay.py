@@ -38,6 +38,76 @@ def _qcolor(hex_color, alpha=1.0):
     return c
 
 
+def _source_label(snapshot):
+    source = snapshot.get("source")
+    fidelity = snapshot.get("fidelity")
+    if source == "bridge":
+        return "Bridge"
+    if source == "cursor-ide":
+        return "IDE/API"
+    if source == "cursor-agent":
+        return "Agent/API"
+    if source == "cursor-browser":
+        return "Browser/API"
+    if fidelity == "official":
+        return "Official"
+    if fidelity in ("derived", "log"):
+        return "Local est."
+    if fidelity == "local":
+        return "Cache"
+    return "API/cache"
+
+
+def _status_label(status):
+    return {
+        "ok": "Fresh",
+        "stale": "Stale",
+        "degraded": "Refresh issue",
+        "rate_limited": "Limited",
+        "auth_required": "Login needed",
+        "offline": "Offline",
+        "error": "Unavailable",
+        "refreshing": "Refreshing",
+    }.get(status, "Unavailable")
+
+
+def _compact_number(value):
+    number = float(value)
+    if number.is_integer():
+        return str(int(number))
+    return f"{number:.1f}".rstrip("0").rstrip(".")
+
+
+def _age_label(fetched_at, now):
+    seconds = max(0, int(now.timestamp() - fetched_at / 1000))
+    if seconds < 60:
+        return f"{seconds}s"
+    minutes = seconds // 60
+    if minutes < 60:
+        return f"{minutes}m"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours}h"
+    return f"{hours // 24}d"
+
+
+def _usage_delta(window, previous_snapshot):
+    if not previous_snapshot:
+        return None
+    previous = next(
+        (item for item in previous_snapshot.get("windows", []) if item.get("id") == window.get("id")),
+        None,
+    )
+    old_fraction = (previous or {}).get("usedFraction")
+    new_fraction = window.get("usedFraction")
+    if not isinstance(old_fraction, (int, float)) or not isinstance(new_fraction, (int, float)):
+        return None
+    if old_fraction > new_fraction or previous.get("resetsAt") != window.get("resetsAt"):
+        return None
+    delta = round((new_fraction - old_fraction) * 100)
+    return delta if delta > 0 else None
+
+
 class NotchOverlay(QWidget):
     def __init__(self, store, config, parent=None, on_theme_change=None, open_menu=None):
         super().__init__(parent)
@@ -69,7 +139,6 @@ class NotchOverlay(QWidget):
         self._anim.valueChanged.connect(self._on_progress)
         self._activity_timer = QTimer(self)
         self._activity_timer.timeout.connect(self._tick_activity)
-        self._activity_timer.start(16)
         self._card_timer = QTimer(self)
         self._card_timer.timeout.connect(self.update)
         self._card_timer.start(30_000)
@@ -94,7 +163,7 @@ class NotchOverlay(QWidget):
         self.setAttribute(Qt.WA_X11NetWmWindowTypeDock, True)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.NoFocus)
-        store.changed.connect(lambda _id: self.update())
+        store.changed.connect(self._on_store_changed)
         self._install_screen_watchers()
         self._relayout()
         self._update_mask()
@@ -525,16 +594,23 @@ class NotchOverlay(QWidget):
         state = self._store.state_of(provider.id) or {}
         snapshot = state.get("snapshot")
         windows = (snapshot or {}).get("windows") or []
-        extra = 1 if (snapshot or {}).get("note") else 0
+        extra = 1
+        extra += 1 if (snapshot or {}).get("note") else 0
         extra += 1 if state.get("error") and snapshot else 0
         activity = self._store.activity(provider.id)
         sess = min(L["sessionCap"], len((activity or {}).get("sessions") or []))
         block = L["headerToBlock"] + L["labelToBar"] + L["barHeight"] + L["barToUsed"] + L["bodyFont"] * 1.4 + L["blockSpacing"]
+        absolute_rows = sum(
+            1 for window in windows
+            if isinstance(window.get("used"), (int, float))
+            and isinstance(window.get("limit"), (int, float))
+        )
         height = (
             L["cardPadding"] * 2
             + L["glyphSize"]
             + extra * (L["bodyFont"] * 1.4 + L["headerToBlock"])
             + max(1, len(windows)) * block
+            + absolute_rows * (L["bodyFont"] * 1.4 + L["blockSpacing"])
             + sess * (L["bodyFont"] * 2.8 + L["blockSpacing"])
         )
         height = max(height, 120)
@@ -595,6 +671,12 @@ class NotchOverlay(QWidget):
         y += L["glyphSize"] + L["headerToBlock"]
         snapshot = state.get("snapshot")
         now = datetime.now().astimezone()
+        if snapshot:
+            source = _source_label(snapshot)
+            status = "Updating" if state.get("fetching") else _status_label(state.get("status"))
+            freshness = f"{status} · {source} · {_age_label(snapshot['fetchedAt'], now)}"
+            self._text(painter, freshness, x, y, L["bodyFont"], Palette["textSecondary"])
+            y += L["bodyFont"] * 1.4 + L["blockSpacing"]
         if not snapshot:
             if state.get("fetching"):
                 msg = "Reading usage…"
@@ -620,8 +702,15 @@ class NotchOverlay(QWidget):
             if isinstance(frac, (int, float)):
                 self._usage_bar(painter, x, y, L["cardTextWidth"], frac)
                 y += L["barHeight"] + L["barToUsed"]
-                self._text(painter, f"{percent_text(frac)} Used", x, y, L["bodyFont"], Palette["textPrimary"])
+                delta = _usage_delta(window, state.get("previousSnapshot"))
+                delta_text = f" (+{delta} pp)" if delta is not None else ""
+                self._text(painter, f"{percent_text(frac)} Used{delta_text}", x, y, L["bodyFont"], Palette["textPrimary"])
                 y += L["bodyFont"] + L["blockSpacing"]
+                if isinstance(window.get("used"), (int, float)) and isinstance(window.get("limit"), (int, float)):
+                    unit = f" {window['unit']}" if window.get("unit") else ""
+                    values = f"{_compact_number(window['used'])} / {_compact_number(window['limit'])}{unit}"
+                    self._text(painter, values, x, y, L["bodyFont"], Palette["textSecondary"])
+                    y += L["bodyFont"] * 1.4 + L["blockSpacing"]
             else:
                 self._text(
                     painter,
@@ -724,9 +813,30 @@ class NotchOverlay(QWidget):
             self.update()
         elif self._progress not in (0.0, 1.0):
             self.update()
+        else:
+            self._activity_timer.stop()
+
+    def _on_store_changed(self, provider_id):
+        self.update()
+        activity = self._store.activity(provider_id) or {}
+        if activity.get("state") in ("working", "waiting"):
+            if not self._activity_timer.isActive():
+                self._activity_timer.start(16)
+        elif not any(
+            (self._store.activity(provider.id) or {}).get("state") in ("working", "waiting")
+            for provider in self._store.providers
+        ) and self._progress in (0.0, 1.0):
+            self._activity_timer.stop()
 
     def _on_progress(self, value):
         self.set_progress(value)
+        if value not in (0.0, 1.0) and not self._activity_timer.isActive():
+            self._activity_timer.start(16)
+        elif value in (0.0, 1.0) and not any(
+            (self._store.activity(provider.id) or {}).get("state") in ("working", "waiting")
+            for provider in self._store.providers
+        ):
+            self._activity_timer.stop()
 
     def _expand(self):
         self._expanded = True

@@ -70,7 +70,8 @@ def load_config():
         "showLabels": True,
         "hotZone": 4,
         "openDelay": 150,
-        "refreshInterval": 60,
+        "refreshInterval": 30,
+        "idleRefreshInterval": 300,
         "color": "#000000",
         "opacity": 1.0,
         "themeMode": "auto",
@@ -130,7 +131,8 @@ class CodenotchApp:
         apply_config(self._config)
         self._store = UsageStore(
             active_providers(self._config),
-            refresh_interval=int(self._config.get("refreshInterval", 60)),
+            refresh_interval=int(self._config.get("refreshInterval", 30)),
+            idle_refresh_interval=int(self._config.get("idleRefreshInterval", 300)),
         )
         self._tray = None
         self._overlay = NotchOverlay(

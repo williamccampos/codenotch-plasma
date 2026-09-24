@@ -145,6 +145,8 @@ def ledger_windows_from(body):
         "id": "credits",
         "label": "Monthly limit",
         "usedFraction": used / limit,
+        "used": used,
+        "limit": limit,
         "resetsAt": _as_dt(_parse_ms(config.get("billingPeriodEnd"))),
     }]
 

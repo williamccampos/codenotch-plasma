@@ -66,6 +66,7 @@ class CodexProvider:
             "windows": windows,
             "headlineID": "secondary" if has_dual else (windows[0]["id"] if windows else "primary"),
             "ringMode": "dual" if has_dual else "single",
+            "fidelity": "official",
         }
         if plan:
             snapshot["note"] = plan.title()

@@ -77,6 +77,7 @@ class CursorProviderBase:
             "windows": windows,
             "headlineID": headline_id,
             "source": source,
+            "fidelity": "official",
             "membershipType": body.get("membershipType"),
             "email": email,
         }
@@ -84,9 +85,6 @@ class CursorProviderBase:
         plan = _plan_label(body.get("membershipType"))
         if plan:
             note_parts.append(plan)
-        email = self._account_email(cookie)
-        if email:
-            note_parts.append(email)
         if source == "cursor-browser":
             note_parts.append("browser session")
         elif source == "cursor-ide":
@@ -198,6 +196,8 @@ def windows_from(body):
                 "id": "included",
                 "label": "Included monthly",
                 "usedFraction": _clamp(plan["used"] / limit),
+                "used": plan["used"],
+                "limit": limit,
                 "resetsAt": billing_end,
             })
 
@@ -233,6 +233,8 @@ def windows_from(body):
                 "id": "overall",
                 "label": "Your allocation",
                 "usedFraction": frac,
+                "used": overall.get("used"),
+                "limit": overall.get("limit"),
                 "resetsAt": billing_end,
             })
 
@@ -243,6 +245,8 @@ def windows_from(body):
                 "id": "pooled",
                 "label": "Team pooled usage",
                 "usedFraction": frac,
+                "used": pooled.get("used"),
+                "limit": pooled.get("limit"),
                 "resetsAt": billing_end,
             })
 
@@ -254,6 +258,8 @@ def windows_from(body):
                 "id": "ondemand",
                 "label": "On-demand spend",
                 "usedFraction": frac,
+                "used": on_demand.get("used"),
+                "limit": on_demand.get("limit"),
                 "resetsAt": billing_end,
             })
     return windows

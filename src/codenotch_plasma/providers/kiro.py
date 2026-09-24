@@ -205,6 +205,8 @@ def windows_from_local(state):
                 "id": str(item.get("type") or label).lower(),
                 "label": label,
                 "usedFraction": frac,
+                "used": used,
+                "limit": limit,
                 "resetsAt": resets,
             })
         trial = item.get("freeTrialUsage") or {}
@@ -216,6 +218,8 @@ def windows_from_local(state):
                 "id": "bonus",
                 "label": "Bonus credits",
                 "usedFraction": t_frac,
+                "used": trial.get("currentUsage"),
+                "limit": trial.get("usageLimit"),
                 "resetsAt": _parse_date(trial.get("expiryDate")),
             })
     return windows
@@ -239,6 +243,8 @@ def windows_from_api(body):
             "id": str(item.get("type") or item.get("resourceType") or label).lower(),
             "label": label,
             "usedFraction": frac,
+            "used": item.get("currentUsageWithPrecision", item.get("currentUsage")),
+            "limit": item.get("usageLimitWithPrecision", item.get("usageLimit")),
             "resetsAt": resets or _parse_date(item.get("resetDate") or item.get("nextDateReset")),
         })
     return windows
